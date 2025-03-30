@@ -1,0 +1,16 @@
+# Ignore node_modules directory
+node_modules/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore environment files
+.env
+
+# Ignore build artifacts (if applicable)
+dist/
+build/
+
+# Ignore large model files (optional, if you don’t want to push them)
+*.joblib

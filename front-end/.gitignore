@@ -14,3 +14,4 @@ build/
 
 # Ignore large model files (optional, if you don’t want to push them)
 *.joblib
+backend/CSVs/*

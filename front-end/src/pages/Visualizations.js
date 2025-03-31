@@ -54,6 +54,7 @@ import {
 import Chart from 'react-apexcharts';
 import axios from 'axios';
 import SeasonalAnalysisDashboard from '../components/SeasonalAnalysisDashboard';
+import CategoryPerformanceDashboard from '../components/CategoryPerformanceDashboard';
 
 function Visualizations() {
   const theme = useTheme();
@@ -1030,8 +1031,13 @@ function Visualizations() {
               iconPosition="start"
             />
             <Tab 
-              label="التحليل الموسمي" 
+              label="تحليل موسمي مبسط" 
               icon={<DateRange />} 
+              iconPosition="start"
+            />
+            <Tab 
+              label="أداء الاقسام" 
+              icon={<QueryStats />} 
               iconPosition="start"
             />
           </Tabs>
@@ -1052,10 +1058,11 @@ function Visualizations() {
         
         {/* Content based on selected tab */}
         <Box sx={{ flex: 1 }}>
-          {activeTab === 0 ? renderForecastContent() : 
-           activeTab === 1 ? renderHistoricalContent() : 
-           <SeasonalAnalysisDashboard />}
-        </Box>
+        {activeTab === 0 ? renderForecastContent() : 
+        activeTab === 1 ? renderHistoricalContent() : 
+        activeTab === 2 ? <SeasonalAnalysisDashboard /> :
+        <CategoryPerformanceDashboard />}
+      </Box>
       </Box>
     </Box>
   );

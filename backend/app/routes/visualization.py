@@ -247,3 +247,164 @@ def get_seasonal_analysis():
     except Exception as e:
         print(f"❌ Error fetching seasonal analysis data: {str(e)}")
         return jsonify({"error": f"Failed to fetch seasonal analysis data: {str(e)}"}), 500
+
+# Add this endpoint to your visualization.py file
+
+# Replace the existing category-performance endpoint in visualization.py with this updated version:
+
+@visualization_bp.route('/category-performance', methods=['GET'])
+def get_category_performance():
+    try:
+        # Get query parameters
+        categories = request.args.get('categories', '').split(',')
+        start_year = request.args.get('start_year', '')
+        end_year = request.args.get('end_year', '')
+        group_by = request.args.get('group_by', 'monthly')  # Options: monthly, quarterly, yearly
+        
+        # Build the query
+        query = {}
+        
+        # Filter by categories if provided and not empty
+        if categories and categories[0]:
+            query["القسم"] = {"$in": categories}
+        
+        # Year filtering - simpler than month-year filtering
+        if start_year:
+            query["year"] = {"$gte": int(start_year)}
+            
+        if end_year:
+            if "year" not in query:
+                query["year"] = {}
+            query["year"]["$lte"] = int(end_year)
+        
+        # Fetch data from category_monthly_demand collection
+        category_data = fetch_data("category_monthly_demand", query=query, projection={"_id": 0})
+        
+        if not category_data:
+            return jsonify({
+                "status": "success",
+                "message": "لا توجد بيانات متاحة للمعايير المحددة",
+                "performance_data": []
+            })
+        
+        # Process data based on group_by parameter
+        processed_data = []
+        
+        if group_by == 'yearly':
+            # Group by year and category
+            yearly_data = {}
+            for item in category_data:
+                key = (item['year'], item['القسم'])
+                if key not in yearly_data:
+                    yearly_data[key] = {
+                        'year': item['year'],
+                        'Category': item['القسم'],
+                        'Date': f"{item['year']}-01-01",
+                        'Sales': 0,
+                        'Quantity': 0
+                    }
+                yearly_data[key]['Sales'] += item['total_money_sold']
+                yearly_data[key]['Quantity'] += item['total_quantity']
+            
+            processed_data = list(yearly_data.values())
+            
+        elif group_by == 'quarterly':
+            # Group by year, quarter and category
+            quarterly_data = {}
+            for item in category_data:
+                # Calculate quarter (1-4)
+                quarter = (item['month'] - 1) // 3 + 1
+                key = (item['year'], quarter, item['القسم'])
+                
+                # First month of the quarter for the date
+                quarter_month = ((quarter - 1) * 3) + 1
+                
+                if key not in quarterly_data:
+                    quarterly_data[key] = {
+                        'year': item['year'],
+                        'quarter': quarter,
+                        'Category': item['القسم'],
+                        'Date': f"{item['year']}-{quarter_month:02d}-01",
+                        'Sales': 0,
+                        'Quantity': 0
+                    }
+                quarterly_data[key]['Sales'] += item['total_money_sold']
+                quarterly_data[key]['Quantity'] += item['total_quantity']
+            
+            processed_data = list(quarterly_data.values())
+            
+        else:  # monthly (default)
+            # Format the data needed for the frontend
+            for item in category_data:
+                processed_data.append({
+                    'year': item['year'],
+                    'month': item['month'],
+                    'Category': item['القسم'],
+                    'Date': f"{item['year']}-{item['month']:02d}-01",
+                    'Sales': item['total_money_sold'],
+                    'Quantity': item['total_quantity']
+                })
+        
+        # Sort data by date
+        processed_data.sort(key=lambda x: x['Date'])
+        
+        # Calculate sales distribution data (aggregated by category)
+        sales_distribution_data = {}
+        for item in processed_data:
+            category = item['Category']
+            if category not in sales_distribution_data:
+                sales_distribution_data[category] = 0
+            sales_distribution_data[category] += item['Sales']
+        
+        # Convert to list of dictionaries
+        sales_distribution = [{"name": k, "value": v} for k, v in sales_distribution_data.items()]
+        
+        # Calculate year-over-year growth rates
+        # Group data by category and year
+        category_yearly_data = {}
+        for item in processed_data:
+            category = item['Category']
+            year = item['year']
+            if category not in category_yearly_data:
+                category_yearly_data[category] = {}
+            if year not in category_yearly_data[category]:
+                category_yearly_data[category][year] = 0
+            category_yearly_data[category][year] += item['Sales']
+        
+        # Calculate growth rates
+        growth_rates = []
+        for category, yearly_data in category_yearly_data.items():
+            years = sorted(yearly_data.keys())
+            for i in range(1, len(years)):
+                prev_year = years[i-1]
+                curr_year = years[i]
+                prev_sales = yearly_data[prev_year]
+                curr_sales = yearly_data[curr_year]
+                
+                if prev_sales > 0:
+                    growth_rate = ((curr_sales - prev_sales) / prev_sales) * 100
+                else:
+                    growth_rate = 0
+                
+                growth_rates.append({
+                    'Category': category,
+                    'year': curr_year,
+                    'previousYear': prev_year,
+                    'growthRate': round(growth_rate, 2),
+                    'currentSales': curr_sales,
+                    'previousSales': prev_sales
+                })
+        
+        return jsonify({
+            "status": "success",
+            "performance_data": processed_data,
+            "market_share": sales_distribution,  # Keep the field name as market_share for backwards compatibility
+            "growth_rates": growth_rates
+        })
+        
+    except Exception as e:
+        print(f"Error in category performance endpoint: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500

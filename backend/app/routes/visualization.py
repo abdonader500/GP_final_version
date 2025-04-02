@@ -408,3 +408,142 @@ def get_category_performance():
             "status": "error",
             "message": str(e)
         }), 500
+
+# Add this endpoint to your visualization.py file
+
+@visualization_bp.route('/item-demand-forecasting', methods=['GET'])
+def get_item_demand_forecasting():
+    try:
+        # Get query parameters
+        category = request.args.get('category')
+        specification = request.args.get('specification')
+        
+        # Build the query
+        query = {"year": 2025}
+        
+        if category:
+            query["القسم"] = category
+            
+        if specification:
+            query["product_specification"] = specification
+        
+        # Fetch predicted item demand data for 2025
+        item_predicted_data = fetch_data("predicted_item_demand_2025", query=query, projection={"_id": 0})
+
+        # If no data is found, return an empty result with a warning
+        if not item_predicted_data:
+            print("⚠ No predicted item demand data found for 2025")
+            return jsonify({
+                "item_demand_data": {},
+                "message": "No predicted item demand data available for 2025. Please run the AI-based prediction first."
+            }), 200
+
+        # Convert to DataFrame
+        df = pd.DataFrame(item_predicted_data)
+        
+        # Format the response data - group by category and specification
+        result = {}
+        
+        # Process the data
+        for _, row in df.iterrows():
+            category = row['القسم']
+            spec = row['product_specification']
+            month = row['month']
+            
+            if category not in result:
+                result[category] = {}
+                
+            if spec not in result[category]:
+                result[category][spec] = {}
+                
+            result[category][spec][str(month)] = {
+                "quantity": row['predicted_quantity'],
+                "money_sold": row['predicted_money_sold']
+            }
+
+        # Convert to JSON with UTF-8 encoding
+        json_response = json.dumps({"item_demand_data": result}, ensure_ascii=False, indent=4)
+        return Response(json_response, content_type="application/json; charset=utf-8")
+
+    except Exception as e:
+        print(f"❌ Error fetching predicted item demand data: {str(e)}")
+        return jsonify({"error": f"Failed to fetch predicted item demand data: {str(e)}"}), 500
+
+
+@visualization_bp.route('/daily-item-demand-forecasting', methods=['GET'])
+def get_daily_item_demand_forecasting():
+    try:
+        # Get query parameters
+        category = request.args.get('category')
+        specification = request.args.get('specification')
+        month = request.args.get('month')
+        
+        # Build the query
+        query = {"year": 2025}
+        
+        if category:
+            query["القسم"] = category
+            
+        if specification:
+            query["product_specification"] = specification
+            
+        if month:
+            query["month"] = int(month)
+            
+        # Fetch predicted daily demand data for 2025
+        daily_predicted_data = fetch_data("predicted_daily_demand_2025", query=query, projection={"_id": 0})
+
+        # If no data is found, return an empty result with a warning
+        if not daily_predicted_data:
+            print("⚠ No predicted daily item demand data found for 2025")
+            return jsonify({
+                "daily_item_demand_data": {},
+                "message": "No predicted daily item demand data available for 2025. Please run the AI-based prediction first."
+            }), 200
+
+        # Convert to DataFrame
+        df = pd.DataFrame(daily_predicted_data)
+        
+        # Convert date strings to datetime objects for proper sorting
+        if 'date' in df.columns:
+            df["date"] = pd.to_datetime(df["date"])
+            # Sort by date
+            df = df.sort_values(by="date")
+        
+        # Format the response data - group by category, specification and date
+        result = {}
+        
+        # Filter out the 'all' marker for category-level predictions if specification is requested
+        if specification:
+            df = df[df['product_specification'] != 'all']
+        
+        # Process the data
+        for _, row in df.iterrows():
+            category = row['القسم']
+            spec = row['product_specification']
+            
+            if 'date' in row:
+                date_str = row['date'].strftime('%Y-%m-%d') if isinstance(row['date'], datetime) else row['date']
+            else:
+                # Skip rows without date information
+                continue
+                
+            if category not in result:
+                result[category] = {}
+                
+            if spec not in result[category]:
+                result[category][spec] = {}
+                
+            result[category][spec][date_str] = {
+                "quantity": row['predicted_quantity'],
+                "money_sold": row['predicted_money_sold'],
+                "day_of_week": row['day_of_week'] if 'day_of_week' in row else None
+            }
+
+        # Convert to JSON with UTF-8 encoding
+        json_response = json.dumps({"daily_item_demand_data": result}, ensure_ascii=False, indent=4)
+        return Response(json_response, content_type="application/json; charset=utf-8")
+
+    except Exception as e:
+        print(f"❌ Error fetching predicted daily item demand data: {str(e)}")
+        return jsonify({"error": f"Failed to fetch predicted daily item demand data: {str(e)}"}), 500

@@ -11,6 +11,7 @@ from app.routes.admin import admin_bp
 
 
 
+
 # ✅ Application Factory Function
 def create_app():
 
@@ -36,6 +37,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(price_analysis_bp, url_prefix='/api/price-analysis')  # ✅ NEW ROUTE
+
 
 
     # ✅ Health Check Route

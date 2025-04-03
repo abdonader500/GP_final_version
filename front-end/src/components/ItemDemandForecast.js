@@ -106,15 +106,24 @@ const ItemDemandForecast = () => {
     setError(null);
     
     try {
-      // This would call your backend to run the AI forecast
-      await axios.post('http://localhost:5000/api/demand-forecasting/run-ai-forecast');
+      // Call your backend to run the AI forecast
+      const response = await axios.post('http://localhost:5000/api/demand-forecasting/run-ai-forecast');
       
-      // Reload data
-      fetchItemForecastData();
+      if (response.data.success) {
+        // Show success message
+        alert('تم تشغيل نظام التنبؤ الذكي بنجاح. قد تستغرق العملية عدة دقائق لاكتمالها.');
+      } else {
+        setError(response.data.message || 'حدث خطأ أثناء تشغيل نظام التنبؤ الذكي.');
+      }
+      
+      // Reload data after a short delay to allow backend processing
+      setTimeout(() => {
+        fetchItemForecastData();
+      }, 3000);
       
     } catch (err) {
       console.error('Error running AI forecast:', err);
-      setError('فشل في تشغيل نظام التنبؤ الذكي.');
+      setError('فشل في تشغيل نظام التنبؤ الذكي. ' + (err.response?.data?.message || ''));
     } finally {
       setLoading(false);
     }

@@ -42,7 +42,52 @@ def get_demand_forecasting():
     except Exception as e:
         print(f"❌ Error fetching predicted demand data: {str(e)}")
         return jsonify({"error": f"Failed to fetch predicted demand data: {str(e)}"}), 500
-
+@visualization_bp.route('/item-specifications', methods=['GET'])
+def get_item_specifications():
+    try:
+        # Get query parameter
+        category = request.args.get('category')
+        
+        if not category:
+            return jsonify({
+                "success": False,
+                "message": "Category parameter is required",
+                "specifications": []
+            }), 400
+        
+        # Fetch data from item_specification_monthly_demand collection
+        item_specs_data = fetch_data(
+            "item_specification_monthly_demand", 
+            query={"القسم": category}, 
+            projection={"_id": 0, "product_specification": 1}
+        )
+        
+        if not item_specs_data:
+            return jsonify({
+                "success": True,
+                "message": f"No specifications found for category '{category}'",
+                "specifications": []
+            }), 200
+        
+        # Extract unique specifications for the category
+        specifications = list(set([item.get("product_specification") for item in item_specs_data if item.get("product_specification")]))
+        
+        # Sort alphabetically
+        specifications.sort()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Found {len(specifications)} specifications for category '{category}'",
+            "specifications": specifications
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error fetching item specifications: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": f"Failed to fetch specifications: {str(e)}",
+            "specifications": []
+        }), 500
 @visualization_bp.route('/demand-forecasting-items', methods=['GET'])
 def get_demand_forecasting_items():
     try:

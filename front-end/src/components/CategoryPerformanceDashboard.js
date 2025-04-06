@@ -22,7 +22,10 @@ import {
   Stack,
   Switch,
   FormControlLabel,
-  OutlinedInput
+  OutlinedInput,
+  RadioGroup,
+  Radio,
+  FormLabel
 } from '@mui/material';
 import { 
   BarChart as BarChartIcon, 
@@ -31,7 +34,9 @@ import {
   ShowChart,
   QueryStats,
   DateRange,
-  MonetizationOn
+  MonetizationOn,
+  LocalAtm,
+  ProductionQuantityLimits
 } from '@mui/icons-material';
 import Chart from 'react-apexcharts';
 import axios from 'axios';
@@ -53,7 +58,11 @@ const CategoryPerformanceDashboard = () => {
   const [showGrowthRate, setShowGrowthRate] = useState(true);
   const [allCategoriesSelected, setAllCategoriesSelected] = useState(true);
   const [salesShareData, setSalesShareData] = useState([]);
+  const [quantitySalesShareData, setQuantitySalesShareData] = useState([]);  // New state for quantity-based sales share
   const [growthRates, setGrowthRates] = useState([]);
+  
+  // New state for data metric selection
+  const [dataMetric, setDataMetric] = useState('money'); // 'money' or 'quantity'
   
   // Define a consistent color mapping for categories
   const getColorPalette = () => {
@@ -146,6 +155,9 @@ const CategoryPerformanceDashboard = () => {
           url += `&end_year=${endYear}`;
         }
         
+        // Add data metric parameter
+        url += `&metric=${dataMetric}`;
+        
         console.log('Fetching data from:', url);
         response = await axios.get(url);
         
@@ -157,7 +169,9 @@ const CategoryPerformanceDashboard = () => {
           
           // Extract unique categories
           const uniqueCategories = [...new Set(response.data.performance_data.map(item => item.Category))];
-          setCategories(uniqueCategories);
+          setCategories(prevCategories => {
+            return [...new Set([...prevCategories, ...uniqueCategories])];
+          });
           
           if (selectedCategories.length === 0 || allCategoriesSelected) {
             setSelectedCategories(uniqueCategories);
@@ -185,22 +199,46 @@ const CategoryPerformanceDashboard = () => {
     const endDate = new Date(2023, 11, 31);
     const sampleData = [];
     const sampleSalesShare = [];
+    const sampleQuantityShare = [];
     const sampleGrowthRates = [];
     
     // First generate totals for sales share calculation
     const categoryTotals = {};
+    const categoryQuantities = {};
+    
     sampleCategories.forEach((category, index) => {
       let baseValue;
+      let baseQuantity;
+      
       // Make first categories have higher values
-      if (index === 0) baseValue = 25000000 + Math.random() * 5000000;
-      else if (index === 1) baseValue = 15000000 + Math.random() * 2000000;
-      else if (index === 2) baseValue = 10000000 + Math.random() * 2000000;
-      else baseValue = 7000000 - (index * 1000000) + Math.random() * 1000000;
+      if (index === 0) {
+        baseValue = 25000000 + Math.random() * 5000000;
+        baseQuantity = 120000 + Math.random() * 30000;
+      }
+      else if (index === 1) {
+        baseValue = 15000000 + Math.random() * 2000000;
+        baseQuantity = 90000 + Math.random() * 20000;
+      }
+      else if (index === 2) {
+        baseValue = 10000000 + Math.random() * 2000000;
+        baseQuantity = 60000 + Math.random() * 15000;
+      }
+      else {
+        baseValue = 7000000 - (index * 1000000) + Math.random() * 1000000;
+        baseQuantity = 40000 - (index * 5000) + Math.random() * 10000;
+      }
       
       categoryTotals[category] = baseValue;
+      categoryQuantities[category] = baseQuantity;
+      
       sampleSalesShare.push({
         name: category,
         value: Math.round(baseValue)
+      });
+      
+      sampleQuantityShare.push({
+        name: category,
+        value: Math.round(baseQuantity)
       });
     });
     
@@ -208,6 +246,7 @@ const CategoryPerformanceDashboard = () => {
     for (let category of sampleCategories) {
       let currentDate = new Date(startDate);
       let baseSales = categoryTotals[category] / 24; // Distribute across months
+      let baseQuantity = categoryQuantities[category] / 24;
       
       while (currentDate <= endDate) {
         const year = currentDate.getFullYear();
@@ -222,6 +261,7 @@ const CategoryPerformanceDashboard = () => {
         const randomFactor = 0.85 + Math.random() * 0.3;
         
         const sales = baseSales * seasonalFactor * growthFactor * randomFactor;
+        const quantity = baseQuantity * seasonalFactor * growthFactor * randomFactor;
         
         sampleData.push({
           year: year,
@@ -229,7 +269,7 @@ const CategoryPerformanceDashboard = () => {
           Category: category,
           Date: `${year}-${String(month).padStart(2, '0')}-01`,
           Sales: Math.round(sales * 100) / 100,
-          Quantity: Math.round(sales / (50 + Math.random() * 30))
+          Quantity: Math.round(quantity)
         });
         
         // Move to next month
@@ -243,13 +283,16 @@ const CategoryPerformanceDashboard = () => {
         previousYear: 2022,
         growthRate: Math.round((Math.random() * 40 - 10) * 10) / 10, // -10% to +30%
         currentSales: Math.round(baseSales * 12 * 1.2),
-        previousSales: Math.round(baseSales * 12)
+        previousSales: Math.round(baseSales * 12),
+        currentQuantity: Math.round(baseQuantity * 12 * 1.2),
+        previousQuantity: Math.round(baseQuantity * 12)
       });
     }
     
     // Update state with sample data
     setData(sampleData);
     setSalesShareData(sampleSalesShare);
+    setQuantitySalesShareData(sampleQuantityShare);
     setGrowthRates(sampleGrowthRates);
     setCategories(sampleCategories);
     if (selectedCategories.length === 0 || allCategoriesSelected) {
@@ -257,21 +300,79 @@ const CategoryPerformanceDashboard = () => {
     }
   };
 
+  // Process sales and quantity share data from raw data
+  const processShareData = () => {
+    if (!data.length) return { salesShare: [], quantityShare: [] };
+    
+    // Filter data for selected categories
+    const filteredData = data.filter(item => selectedCategories.includes(item.Category));
+    
+    // Group by category and calculate totals
+    const categorySales = {};
+    const categoryQuantities = {};
+    
+    filteredData.forEach(item => {
+      const category = item.Category;
+      
+      if (!categorySales[category]) {
+        categorySales[category] = 0;
+        categoryQuantities[category] = 0;
+      }
+      
+      categorySales[category] += item.Sales || 0;
+      categoryQuantities[category] += item.Quantity || 0;
+    });
+    
+    // Format for pie chart
+    const salesShare = Object.keys(categorySales).map(category => ({
+      name: category,
+      value: Math.round(categorySales[category])
+    }));
+    
+    const quantityShare = Object.keys(categoryQuantities).map(category => ({
+      name: category,
+      value: Math.round(categoryQuantities[category])
+    }));
+    
+    return { salesShare, quantityShare };
+  };
+
   // Initial data fetch
   useEffect(() => {
     fetchData();
   }, []);
 
+  // Refetch data when metric changes
+  useEffect(() => {
+    if (data.length > 0) {
+      fetchData();
+    }
+  }, [dataMetric]);
+
+  // Process and update sales share data when raw data or selected categories change
+  useEffect(() => {
+    if (data.length > 0) {
+      const { salesShare, quantityShare } = processShareData();
+      setSalesShareData(salesShare);
+      setQuantitySalesShareData(quantityShare);
+    }
+  }, [data, selectedCategories]);
+
   // Handle category selection change
   const handleCategoryChange = (event) => {
     const value = event.target.value;
     if (value[value.length - 1] === 'all') {
-      setSelectedCategories(categories.length === selectedCategories.length ? [] : categories);
+      setSelectedCategories(categories.length === selectedCategories.length ? [] : [...categories]);
       setAllCategoriesSelected(!allCategoriesSelected);
       return;
     }
     setSelectedCategories(value);
     setAllCategoriesSelected(false);
+  };
+
+  // Handle data metric change
+  const handleDataMetricChange = (event) => {
+    setDataMetric(event.target.value);
   };
 
   // Process data for category comparison
@@ -286,7 +387,9 @@ const CategoryPerformanceDashboard = () => {
       if (!groupedByDate[item.Date]) {
         groupedByDate[item.Date] = { date: item.Date };
       }
-      groupedByDate[item.Date][item.Category] = item.Sales;
+      // Use the appropriate metric based on user selection
+      const value = dataMetric === 'money' ? item.Sales : item.Quantity;
+      groupedByDate[item.Date][item.Category] = value;
     });
     
     // Convert to array and sort by date
@@ -313,7 +416,7 @@ const CategoryPerformanceDashboard = () => {
     const firstYear = filteredYears[0];
     const lastYear = filteredYears[filteredYears.length - 1];
     
-    // Calculate total sales per category per year
+    // Calculate total sales/quantity per category per year
     filteredData.forEach(item => {
       const category = item.Category;
       const year = item.year;
@@ -326,7 +429,9 @@ const CategoryPerformanceDashboard = () => {
         categoryYearData[category][year] = 0;
       }
       
-      categoryYearData[category][year] += item.Sales;
+      // Use appropriate metric
+      const value = dataMetric === 'money' ? item.Sales : item.Quantity;
+      categoryYearData[category][year] += value;
     });
     
     // Calculate growth rates
@@ -335,15 +440,15 @@ const CategoryPerformanceDashboard = () => {
     selectedCategories.forEach(category => {
       if (!categoryYearData[category]) return;
       
-      // Get first and last year sales for each category
-      const firstYearSales = categoryYearData[category][firstYear] || 0;
-      const lastYearSales = categoryYearData[category][lastYear] || 0;
+      // Get first and last year values for each category
+      const firstYearValue = categoryYearData[category][firstYear] || 0;
+      const lastYearValue = categoryYearData[category][lastYear] || 0;
       
-      // Skip if no sales data for either year
-      if (firstYearSales === 0) return;
+      // Skip if no data for either year
+      if (firstYearValue === 0) return;
       
       // Calculate total growth percentage
-      const totalGrowth = ((lastYearSales - firstYearSales) / firstYearSales) * 100;
+      const totalGrowth = ((lastYearValue - firstYearValue) / firstYearValue) * 100;
       
       // Calculate CAGR for multi-year ranges
       const yearDiff = lastYear - firstYear;
@@ -351,26 +456,40 @@ const CategoryPerformanceDashboard = () => {
       
       if (yearDiff > 1) {
         // Use CAGR formula: (lastValue/firstValue)^(1/years) - 1
-        growthRate = (Math.pow(lastYearSales / firstYearSales, 1 / yearDiff) - 1) * 100;
+        growthRate = (Math.pow(lastYearValue / firstYearValue, 1 / yearDiff) - 1) * 100;
       } else {
         // For single year difference, use simple percentage change
         growthRate = totalGrowth;
       }
 
-      // Collect all years' sales for this category
-      const yearSales = {};
+      // Collect all years' values for this category
+      const yearValues = {};
       filteredYears.forEach(year => {
-        yearSales[year] = categoryYearData[category][year] || 0;
+        yearValues[year] = categoryYearData[category][year] || 0;
       });
+      
+      // Use appropriate field names based on the data metric
+      const metricFields = dataMetric === 'money' 
+        ? {
+            currentValue: lastYearValue,
+            previousValue: firstYearValue,
+            displayName: 'مبيعات'
+          }
+        : {
+            currentValue: lastYearValue,
+            previousValue: firstYearValue,
+            displayName: 'كمية'
+          };
       
       growthResults.push({
         Category: category,
         year: lastYear,
         previousYear: firstYear,
         growthRate: Math.round(growthRate * 10) / 10, // Round to 1 decimal place
-        currentSales: lastYearSales,
-        previousSales: firstYearSales,
-        yearSales: yearSales,
+        currentValue: metricFields.currentValue,
+        previousValue: metricFields.previousValue,
+        displayName: metricFields.displayName,
+        yearValues: yearValues,
         allYears: filteredYears
       });
     });
@@ -393,16 +512,18 @@ const CategoryPerformanceDashboard = () => {
         acc[month] = { month, total: 0, count: 0 };
       }
       
-      acc[month].total += item.Sales;
+      // Use appropriate metric
+      const value = dataMetric === 'money' ? item.Sales : item.Quantity;
+      acc[month].total += value;
       acc[month].count += 1;
       
       return acc;
     }, {});
     
-    // Calculate average sales for each month
+    // Calculate average for each month
     const monthlyAverages = Object.values(monthlyData).map(item => ({
       month: item.month,
-      avgSales: item.total / item.count
+      avgValue: item.total / item.count
     }));
     
     // Sort by month
@@ -421,8 +542,9 @@ const CategoryPerformanceDashboard = () => {
       
       if (categoryData.length === 0) return;
       
-      // Calculate average sales
-      const avgSales = _.meanBy(categoryData, 'Sales');
+      // Calculate average sales/quantity
+      const valueField = dataMetric === 'money' ? 'Sales' : 'Quantity';
+      const avgValue = _.meanBy(categoryData, valueField);
       
       // Calculate growth rate using the same method as in processGrowthTrendsData
       const yearlyData = {};
@@ -431,7 +553,7 @@ const CategoryPerformanceDashboard = () => {
         if (!yearlyData[year]) {
           yearlyData[year] = 0;
         }
-        yearlyData[year] += item.Sales;
+        yearlyData[year] += dataMetric === 'money' ? item.Sales : item.Quantity;
       });
       
       const years = Object.keys(yearlyData).map(Number).sort();
@@ -440,30 +562,30 @@ const CategoryPerformanceDashboard = () => {
       
       let growthRate = 0;
       if (years.length >= 2 && yearlyData[firstYear] > 0) {
-        const firstYearSales = yearlyData[firstYear];
-        const lastYearSales = yearlyData[lastYear];
+        const firstYearValue = yearlyData[firstYear];
+        const lastYearValue = yearlyData[lastYear];
         const yearDiff = lastYear - firstYear;
         
         if (yearDiff > 1) {
           // Use CAGR formula for multi-year periods
-          growthRate = (Math.pow(lastYearSales / firstYearSales, 1 / yearDiff) - 1) * 100;
+          growthRate = (Math.pow(lastYearValue / firstYearValue, 1 / yearDiff) - 1) * 100;
         } else {
           // Use simple percentage change for single year
-          growthRate = ((lastYearSales - firstYearSales) / firstYearSales) * 100;
+          growthRate = ((lastYearValue - firstYearValue) / firstYearValue) * 100;
         }
       }
       
       // Calculate consistency (lower standard deviation = more consistent)
-      const salesValues = categoryData.map(item => item.Sales);
-      const mean = _.mean(salesValues);
-      const squaredDiffs = salesValues.map(value => Math.pow(value - mean, 2));
+      const values = categoryData.map(item => dataMetric === 'money' ? item.Sales : item.Quantity);
+      const mean = _.mean(values);
+      const squaredDiffs = values.map(value => Math.pow(value - mean, 2));
       const variance = squaredDiffs.length > 0 ? _.mean(squaredDiffs) : 0;
       const stdDev = Math.sqrt(variance);
       const consistency = mean > 0 ? (1 - (stdDev / mean)) * 100 : 0; // Normalize to percentage
       
       categoryMetrics[category] = {
         category,
-        avgSales,
+        avgValue,
         growthRate: Math.round(growthRate * 10) / 10, // Round to 1 decimal
         consistency: Math.max(0, Math.min(100, consistency)) // Clamp between 0-100
       };
@@ -475,6 +597,11 @@ const CategoryPerformanceDashboard = () => {
   // Handle tab change
   const handleTabChange = (newValue) => {
     setSelectedTab(newValue);
+  };
+
+  // Get value label based on selected data metric
+  const getValueLabel = () => {
+    return dataMetric === 'money' ? 'المبيعات (جنيه)' : 'الكمية';
   };
 
   // Chart options for category comparison
@@ -498,7 +625,7 @@ const CategoryPerformanceDashboard = () => {
       fontFamily: theme.typography.fontFamily,
     },
     title: {
-      text: 'مقارنة المبيعات حسب الفئة',
+      text: `مقارنة ${dataMetric === 'money' ? 'المبيعات' : 'الكميات'} حسب الفئة`,
       align: 'center',
       style: { 
         fontSize: '18px',
@@ -523,7 +650,7 @@ const CategoryPerformanceDashboard = () => {
     },
     yaxis: {
       title: {
-        text: 'المبيعات (جنيه)',
+        text: getValueLabel(),
         style: { 
           color: theme.palette.text.secondary,
           fontFamily: theme.typography.fontFamily,
@@ -555,7 +682,12 @@ const CategoryPerformanceDashboard = () => {
         format: 'MMM yyyy'
       },
       y: {
-        formatter: (value) => `${Math.round(value)} جنيه`,
+        formatter: (value) => {
+          if (dataMetric === 'money') {
+            return `${Math.round(value)} جنيه`;
+          }
+          return `${Math.round(value)} قطعة`;
+        },
       },
       style: {
         fontFamily: theme.typography.fontFamily
@@ -598,7 +730,7 @@ const CategoryPerformanceDashboard = () => {
       fontFamily: theme.typography.fontFamily,
     },
     title: {
-      text: 'توزيع حصة المبيعات',
+      text: `توزيع حصة ${dataMetric === 'money' ? 'المبيعات' : 'الكميات'}`,
       align: 'center',
       style: { 
         fontSize: '18px',
@@ -607,8 +739,11 @@ const CategoryPerformanceDashboard = () => {
         color: theme.palette.text.primary 
       },
     },
-    labels: salesShareData.map(item => item.name),
-    colors: salesShareData.map(item => getColorPalette()[getCategoryColorIndex(item.name)]),
+    labels: dataMetric === 'money' 
+      ? salesShareData.map(item => item.name)
+      : quantitySalesShareData.map(item => item.name),
+    colors: (dataMetric === 'money' ? salesShareData : quantitySalesShareData)
+      .map(item => getColorPalette()[getCategoryColorIndex(item.name)]),
     dataLabels: {
       enabled: true,
       formatter: function (val, opts) {
@@ -640,7 +775,10 @@ const CategoryPerformanceDashboard = () => {
     tooltip: {
       y: {
         formatter: function(value) {
-          return `${Math.round(value)} جنيه`;
+          if (dataMetric === 'money') {
+            return `${Math.round(value)} جنيه`;
+          }
+          return `${Math.round(value)} قطعة`;
         }
       }
     },
@@ -669,7 +807,7 @@ const CategoryPerformanceDashboard = () => {
       fontFamily: theme.typography.fontFamily,
     },
     title: {
-      text: 'معدلات النمو حسب الفئة',
+      text: `معدلات نمو ${dataMetric === 'money' ? 'المبيعات' : 'الكميات'} حسب الفئة`,
       align: 'center',
       style: { 
         fontSize: '18px',
@@ -747,7 +885,7 @@ const CategoryPerformanceDashboard = () => {
       fontFamily: theme.typography.fontFamily,
     },
     title: {
-      text: 'الأنماط الموسمية للمبيعات',
+      text: `الأنماط الموسمية لـ${dataMetric === 'money' ? 'لمبيعات' : 'لكميات'}`,
       align: 'center',
       style: { 
         fontSize: '18px',
@@ -779,7 +917,7 @@ const CategoryPerformanceDashboard = () => {
     },
     yaxis: {
       title: {
-        text: 'متوسط المبيعات (جنيه)',
+        text: `متوسط ${dataMetric === 'money' ? 'المبيعات (جنيه)' : 'الكميات (قطعة)'}`,
         style: { 
           color: theme.palette.text.secondary,
           fontFamily: theme.typography.fontFamily,
@@ -805,7 +943,12 @@ const CategoryPerformanceDashboard = () => {
     },
     tooltip: {
       y: {
-        formatter: (value) => `${Math.round(value)} جنيه`,
+        formatter: (value) => {
+          if (dataMetric === 'money') {
+            return `${Math.round(value)} جنيه`;
+          }
+          return `${Math.round(value)} قطعة`;
+        },
       },
       style: {
         fontFamily: theme.typography.fontFamily
@@ -818,14 +961,14 @@ const CategoryPerformanceDashboard = () => {
     if (!data.length) return [];
     
     const seasonalData = calculateSeasonalTrends();
-    // Find average sales across all months
-    const avgSalesTotal = _.meanBy(seasonalData, 'avgSales');
+    // Find average value across all months
+    const avgValueTotal = _.meanBy(seasonalData, 'avgValue');
     // Consider peak months those that are at least 20% above average
-    const threshold = avgSalesTotal * 1.2;
+    const threshold = avgValueTotal * 1.2;
     
     const peaks = seasonalData
-      .filter(item => item.avgSales >= threshold)
-      .sort((a, b) => b.avgSales - a.avgSales);
+      .filter(item => item.avgValue >= threshold)
+      .sort((a, b) => b.avgValue - a.avgValue);
     
     return peaks.map(peak => {
       const monthNames = [
@@ -834,7 +977,7 @@ const CategoryPerformanceDashboard = () => {
       ];
       return {
         month: monthNames[peak.month - 1],
-        percentage: Math.round((peak.avgSales / avgSalesTotal - 1) * 100)
+        percentage: Math.round((peak.avgValue / avgValueTotal - 1) * 100)
       };
     });
   };
@@ -849,7 +992,10 @@ const CategoryPerformanceDashboard = () => {
     }));
   };
 
-  const salesShareSeries = salesShareData.map(item => item.value);
+  // Get the appropriate sales share data based on the selected metric
+  const salesShareSeries = dataMetric === 'money' 
+    ? salesShareData.map(item => item.value) 
+    : quantitySalesShareData.map(item => item.value);
 
   const growthTrendsSeries = [{
     name: 'معدل النمو',
@@ -857,8 +1003,8 @@ const CategoryPerformanceDashboard = () => {
   }];
 
   const seasonalTrendsSeries = [{
-    name: 'متوسط المبيعات',
-    data: calculateSeasonalTrends().map(item => item.avgSales)
+    name: dataMetric === 'money' ? 'متوسط المبيعات' : 'متوسط الكميات',
+    data: calculateSeasonalTrends().map(item => item.avgValue)
   }];
 
   const peakMonths = findPeakMonths();
@@ -885,6 +1031,44 @@ const CategoryPerformanceDashboard = () => {
       >
         <Box sx={{ p: 2 }}>
           <Grid container spacing={2} alignItems="center">
+            {/* Top row with data type selection */}
+            <Grid item xs={12}>
+              <FormControl component="fieldset">
+                <FormLabel component="legend" sx={{ fontWeight: 'medium', mb: 1 }}>
+                  نوع البيانات للتحليل
+                </FormLabel>
+                <RadioGroup
+                  row
+                  aria-label="data-metric"
+                  name="data-metric"
+                  value={dataMetric}
+                  onChange={handleDataMetricChange}
+                >
+                  <FormControlLabel 
+                    value="money" 
+                    control={<Radio color="primary" />} 
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LocalAtm fontSize="small" />
+                        <span>المبيعات (المبالغ المالية)</span>
+                      </Box>
+                    } 
+                  />
+                  <FormControlLabel 
+                    value="quantity" 
+                    control={<Radio color="secondary" />} 
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <ProductionQuantityLimits fontSize="small" />
+                        <span>الكميات</span>
+                      </Box>
+                    }
+                  />
+                </RadioGroup>
+              </FormControl>
+              <Divider sx={{ my: 2 }} />
+            </Grid>
+            
             <Grid item xs={12} md={4}>
               <FormControl fullWidth size="small">
                 <InputLabel id="category-selection-label">اختر الفئات</InputLabel>
@@ -1019,6 +1203,7 @@ const CategoryPerformanceDashboard = () => {
       </Box>
     );
   }
+
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Page Header */}
@@ -1143,7 +1328,7 @@ const CategoryPerformanceDashboard = () => {
                       
                       <Box sx={{ ml: 4 }}>
                         <Typography paragraph>
-                          <strong>• مواسم ذروة المبيعات:</strong> {peakMonths.length > 0 ? (
+                          <strong>• مواسم ذروة {dataMetric === 'money' ? 'المبيعات' : 'الكميات'}:</strong> {peakMonths.length > 0 ? (
                             peakMonths.map(peak => `${peak.month} (+${peak.percentage}%)`).join('، ')
                           ) : 'لا توجد بيانات كافية'}
                         </Typography>
@@ -1165,7 +1350,7 @@ const CategoryPerformanceDashboard = () => {
                   <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                     <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
                       <PieChartIcon sx={{ verticalAlign: 'middle', mr: 1, color: theme.palette.primary.main }} />
-                      توزيع حصة المبيعات
+                      توزيع حصة {dataMetric === 'money' ? 'المبيعات' : 'الكميات'}
                     </Typography>
                     <Box sx={{ flex: 1, minHeight: 400 }}>
                       <Chart
@@ -1184,11 +1369,11 @@ const CategoryPerformanceDashboard = () => {
                   <CardContent>
                     <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
                       <MonetizationOn sx={{ verticalAlign: 'middle', mr: 1, color: theme.palette.primary.main }} />
-                      أعلى الفئات مبيعاً
+                      أعلى الفئات {dataMetric === 'money' ? 'مبيعاً' : 'كميةً'}
                     </Typography>
                     
                     <Box sx={{ mt: 2 }}>
-                      {[...salesShareData]
+                      {(dataMetric === 'money' ? [...salesShareData] : [...quantitySalesShareData])
                         .sort((a, b) => b.value - a.value)
                         .map((item, index) => (
                           <Box key={item.name} sx={{ mb: 2 }}>
@@ -1218,7 +1403,7 @@ const CategoryPerformanceDashboard = () => {
                               </Grid>
                               <Grid item xs={4} sx={{ textAlign: 'right' }}>
                                 <Typography variant="body1" fontWeight="bold">
-                                  {Math.round(item.value).toLocaleString()} جنيه
+                                  {Math.round(item.value).toLocaleString()} {dataMetric === 'money' ? 'جنيه' : 'قطعة'}
                                 </Typography>
                               </Grid>
                             </Grid>
@@ -1233,7 +1418,7 @@ const CategoryPerformanceDashboard = () => {
                               <Box 
                                 sx={{ 
                                   height: '100%', 
-                                  width: `${(item.value / salesShareData[0].value) * 100}%`,
+                                  width: `${(item.value / (dataMetric === 'money' ? salesShareData[0].value : quantitySalesShareData[0].value)) * 100}%`,
                                   bgcolor: getColorPalette()[getCategoryColorIndex(item.name)],
                                 }}
                               />
@@ -1250,13 +1435,13 @@ const CategoryPerformanceDashboard = () => {
                       النصائح الاستراتيجية
                     </Typography>
                     <Typography paragraph>
-                      بناءً على تحليل حصة المبيعات الحالية، نوصي بالتركيز على:
+                      بناءً على تحليل حصة {dataMetric === 'money' ? 'المبيعات' : 'الكميات'} الحالية، نوصي بالتركيز على:
                     </Typography>
                     <Grid container spacing={2}>
                       <Grid item xs={12} md={6}>
                         <Box sx={{ p: 2, bgcolor: alpha(theme.palette.success.main, 0.1), borderRadius: 2 }}>
                           <Typography variant="subtitle2" color="success.main" fontWeight="bold" gutterBottom>
-                            الفئات الأعلى مبيعاً
+                            الفئات الأعلى {dataMetric === 'money' ? 'مبيعاً' : 'كميةً'}
                           </Typography>
                           <Typography variant="body2">
                             المحافظة على مستويات المخزون المثلى وضمان توفر المنتجات الأكثر طلباً. كما يمكن استغلال شعبية هذه الفئات للترويج للمنتجات الأخرى من خلال عروض مشتركة.
@@ -1266,7 +1451,7 @@ const CategoryPerformanceDashboard = () => {
                       <Grid item xs={12} md={6}>
                         <Box sx={{ p: 2, bgcolor: alpha(theme.palette.warning.main, 0.1), borderRadius: 2 }}>
                           <Typography variant="subtitle2" color="warning.main" fontWeight="bold" gutterBottom>
-                            الفئات الأقل مبيعاً
+                            الفئات الأقل {dataMetric === 'money' ? 'مبيعاً' : 'كميةً'}
                           </Typography>
                           <Typography variant="body2">
                             تطوير استراتيجيات تسويقية مخصصة وتحسين عرض المنتجات لزيادة المبيعات. يمكن أيضاً النظر في تجديد تشكيلة المنتجات وفقاً لاتجاهات السوق والمواسم.
@@ -1328,11 +1513,14 @@ const CategoryPerformanceDashboard = () => {
                               <Typography variant="subtitle1" fontWeight="bold">
                                 {item.Category}
                               </Typography>
-                              <Chip 
-                                label={`${item.growthRate >= 0 ? '+' : ''}${item.growthRate.toFixed(1)}%`}
-                                color={item.growthRate >= 0 ? "success" : "error"}
-                                size="small"
-                              />
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {dataMetric === 'money' ? <LocalAtm fontSize="small" /> : <ProductionQuantityLimits fontSize="small" />}
+                                <Chip 
+                                  label={`${item.growthRate >= 0 ? '+' : ''}${item.growthRate.toFixed(1)}%`}
+                                  color={item.growthRate >= 0 ? "success" : "error"}
+                                  size="small"
+                                />
+                              </Box>
                             </Box>
                             <Divider sx={{ my: 1 }} />
                             {/* Show all years data */}
@@ -1342,7 +1530,7 @@ const CategoryPerformanceDashboard = () => {
                                   {year}:
                                 </Typography>
                                 <Typography variant="body2" fontWeight="medium">
-                                  {Math.round(item.yearSales[year]).toLocaleString()} جنيه
+                                  {Math.round(item.yearValues[year]).toLocaleString()} {dataMetric === 'money' ? 'جنيه' : 'قطعة'}
                                 </Typography>
                               </Box>
                             ))}
@@ -1369,24 +1557,24 @@ const CategoryPerformanceDashboard = () => {
                         <thead>
                           <tr>
                             <th style={{ padding: '10px', textAlign: 'right', borderBottom: '2px solid #eee' }}>الفئة</th>
-                            <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #eee' }}>متوسط المبيعات</th>
+                            <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #eee' }}>متوسط {dataMetric === 'money' ? 'المبيعات' : 'الكميات'}</th>
                             <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #eee' }}>معدل النمو</th>
                             <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #eee' }}>الاستقرار</th>
                             <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #eee' }}>مؤشر الأداء العام</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {processPerformanceMatrix().sort((a, b) => b.avgSales - a.avgSales).map((item, index) => {
+                          {processPerformanceMatrix().sort((a, b) => b.avgValue - a.avgValue).map((item, index) => {
                             // Calculate overall performance score (simple weighted average)
                             const growthFactor = ((item.growthRate + 20) / 40); // Normalize from -20% to +20%
                             const consistencyFactor = item.consistency / 100;
-                            const performanceScore = (item.avgSales * 0.5) + (growthFactor * 0.3) + (consistencyFactor * 0.2);
+                            const performanceScore = (item.avgValue * 0.5) + (growthFactor * 0.3) + (consistencyFactor * 0.2);
                             
                             // Get max score for percentage calculation
                             const maxScore = processPerformanceMatrix().reduce((max, curr) => {
                               const currGrowthFactor = ((curr.growthRate + 20) / 40);
                               const currConsistencyFactor = curr.consistency / 100;
-                              const currScore = (curr.avgSales * 0.5) + (currGrowthFactor * 0.3) + (currConsistencyFactor * 0.2);
+                              const currScore = (curr.avgValue * 0.5) + (currGrowthFactor * 0.3) + (currConsistencyFactor * 0.2);
                               return Math.max(max, currScore);
                             }, 0);
                             
@@ -1398,7 +1586,7 @@ const CategoryPerformanceDashboard = () => {
                                   <Typography fontWeight="medium">{item.category}</Typography>
                                 </td>
                                 <td style={{ padding: '10px', textAlign: 'center', borderBottom: '1px solid #eee' }}>
-                                  {Math.round(item.avgSales).toLocaleString()} جنيه
+                                  {Math.round(item.avgValue).toLocaleString()} {dataMetric === 'money' ? 'جنيه' : 'قطعة'}
                                 </td>
                                 <td style={{ 
                                   padding: '10px', 
@@ -1448,7 +1636,7 @@ const CategoryPerformanceDashboard = () => {
                       توصيات تحليلية
                     </Typography>
                     <Typography variant="body2" paragraph sx={{ mb: 3 }}>
-                      بناءً على تحليل البيانات، تم تصنيف الفئات إلى ثلاث مجموعات وفقًا لأدائها العام، مع مراعاة المبيعات ومعدلات النمو والاستقرار:
+                      بناءً على تحليل البيانات، تم تصنيف الفئات إلى ثلاث مجموعات وفقًا لأدائها العام، مع مراعاة {dataMetric === 'money' ? 'المبيعات' : 'الكميات'} ومعدلات النمو والاستقرار:
                     </Typography>
                     <Grid container spacing={3}>
                       <Grid item xs={12} md={4}>
@@ -1460,7 +1648,7 @@ const CategoryPerformanceDashboard = () => {
                             تتميز بمعدلات نمو عالية واستقرار في الأداء، وتمثل الركيزة الأساسية لإيرادات العمل
                           </Typography>
                           <Typography variant="body2" paragraph>
-                            <strong>المميزات:</strong> استقرار في المبيعات، معدلات نمو إيجابية، تحقق أعلى إيرادات
+                            <strong>المميزات:</strong> استقرار في {dataMetric === 'money' ? 'المبيعات' : 'الكميات'}، معدلات نمو إيجابية، تحقق أعلى إيرادات
                           </Typography>
                           <Typography variant="body2">
                             <strong>الإجراء المقترح:</strong> زيادة الاستثمار في هذه الفئات، توسيع تشكيلة المنتجات، تطوير حملات تسويقية مخصصة للعملاء المهتمين بهذه الفئات
@@ -1477,7 +1665,7 @@ const CategoryPerformanceDashboard = () => {
                             تظهر إمكانات نمو واعدة ولكن تحتاج إلى تحسين الأداء، وتمثل فرصة للتوسع المستقبلي
                           </Typography>
                           <Typography variant="body2" paragraph>
-                            <strong>المميزات:</strong> مستويات متوسطة من المبيعات، إمكانية للنمو، تذبذب في الأداء
+                            <strong>المميزات:</strong> مستويات متوسطة من {dataMetric === 'money' ? 'المبيعات' : 'الكميات'}، إمكانية للنمو، تذبذب في الأداء
                           </Typography>
                           <Typography variant="body2">
                             <strong>الإجراء المقترح:</strong> مراجعة استراتيجيات التسعير، تطوير عروض ترويجية مبتكرة، البحث عن فرص لتحسين جودة المنتجات وتنويعها
@@ -1491,10 +1679,10 @@ const CategoryPerformanceDashboard = () => {
                             الفئات منخفضة الأداء
                           </Typography>
                           <Typography variant="body2" paragraph>
-                            تظهر تراجعاً في المبيعات وعدم استقرار، وتحتاج إلى تدخل سريع لتحسين أدائها
+                            تظهر تراجعاً في {dataMetric === 'money' ? 'المبيعات' : 'الكميات'} وعدم استقرار، وتحتاج إلى تدخل سريع لتحسين أدائها
                           </Typography>
                           <Typography variant="body2" paragraph>
-                            <strong>المميزات:</strong> انخفاض في المبيعات، عدم استقرار في الأداء، معدلات نمو سلبية
+                            <strong>المميزات:</strong> انخفاض في {dataMetric === 'money' ? 'المبيعات' : 'الكميات'}، عدم استقرار في الأداء، معدلات نمو سلبية
                           </Typography>
                           <Typography variant="body2">
                             <strong>الإجراء المقترح:</strong> إعادة تقييم شاملة للمنتجات، خفض المخزون غير الفعال، تحليل سلوك العملاء وتفضيلاتهم، النظر في إعادة هيكلة هذه الفئات
@@ -1510,11 +1698,11 @@ const CategoryPerformanceDashboard = () => {
                       <Typography variant="body2">
                         يتم احتساب مؤشر الأداء العام باستخدام معادلة مركبة تأخذ بعين الاعتبار ثلاثة عوامل رئيسية:
                         <ul style={{ marginTop: '8px' }}>
-                          <li><strong>متوسط المبيعات (50%):</strong> يمثل الوزن الأكبر في المعادلة ويعكس القيمة المطلقة للمبيعات</li>
-                          <li><strong>معدل النمو (30%):</strong> يقيس التغير النسبي في المبيعات بين الفترات المختلفة</li>
-                          <li><strong>الاستقرار (20%):</strong> يقيس مدى ثبات المبيعات وعدم تذبذبها خلال الفترة الزمنية</li>
+                          <li><strong>متوسط {dataMetric === 'money' ? 'المبيعات' : 'الكميات'} (50%):</strong> يمثل الوزن الأكبر في المعادلة ويعكس القيمة المطلقة {dataMetric === 'money' ? 'للمبيعات' : 'للكميات'}</li>
+                          <li><strong>معدل النمو (30%):</strong> يقيس التغير النسبي في {dataMetric === 'money' ? 'المبيعات' : 'الكميات'} بين الفترات المختلفة</li>
+                          <li><strong>الاستقرار (20%):</strong> يقيس مدى ثبات {dataMetric === 'money' ? 'المبيعات' : 'الكميات'} وعدم تذبذبها خلال الفترة الزمنية</li>
                         </ul>
-                        كلما ارتفع المؤشر، كان أداء الفئة أفضل من حيث المبيعات والنمو والاستقرار.
+                        كلما ارتفع المؤشر، كان أداء الفئة أفضل من حيث {dataMetric === 'money' ? 'المبيعات' : 'الكميات'} والنمو والاستقرار.
                       </Typography>
                     </Box>
                   </CardContent>

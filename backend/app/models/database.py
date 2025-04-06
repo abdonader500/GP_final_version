@@ -11,7 +11,7 @@ MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 
 # Fix: Replace placeholder if present
 if "your_mongodb_connection_string" in MONGO_URI:
-    MONGO_URI = "mongodb://localhost:27017"
+    MONGO_URI="mongodb://localhost:27017"
 
 client = None
 db = None

@@ -64,13 +64,13 @@ function Pricing() {
         setCategories([
           'حريمي',
           'رجالي',
-          'أطفال',
-          'داخلي أطفال',
+          'اطفال',
+          'داخلي اطفال',
           'داخلي حريمي',
           'داخلي رجالي',
-          'أحذية حريمي',
-          'أحذية رجالي',
-          'أحذية أطفال',
+          'احذية حريمي',
+          'احذية رجالي',
+          'احذية اطفال',
           'مدارس'
         ]);
       } catch (err) {
@@ -79,7 +79,7 @@ function Pricing() {
         setCategories([
           'حريمي',
           'رجالي',
-          'أطفال'
+          'اطفال'
         ]);
       } finally {
         setIsFetchingCategories(false);
@@ -101,7 +101,7 @@ function Pricing() {
     }
     const price = parseFloat(purchasePrice);
     if (price <= 0) {
-      setError('سعر الجملة يجب أن يكون أكبر من صفر');
+      setError('سعر الجملة يجب ان يكون اكبر من صفر');
       return;
     }
     setIsLoading(true);
@@ -138,7 +138,7 @@ function Pricing() {
       if (err.response && err.response.data && err.response.data.error) {
         const backendError = err.response.data.error.toLowerCase();
         if (backendError.includes('no profit model found for the given category and specification')) {
-          setError('لا يوجد نطاق سعر متاح لهذا القسم والمواصفات. يرجى التحقق من المدخلات أو إضافة البيانات.');
+          setError('لا يوجد نطاق سعر متاح لهذا القسم والمواصفات. يرجى التحقق من المدخلات او إضافة البيانات.');
         } else {
           setError(`فشل في الحصول على نسبة الربح المثلى: ${err.response.data.error}`);
         }
@@ -209,7 +209,7 @@ function Pricing() {
                     تحسين التسعير
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    احصل على أفضل سعر لزيادة مبيعاتك وأرباحك
+                    احصل على افضل سعر لزيادة مبيعاتك وارباحك
                   </Typography>
                 </Box>
               </Box>
@@ -219,7 +219,7 @@ function Pricing() {
                   <StepLabel>إدخال البيانات</StepLabel>
                 </Step>
                 <Step>
-                  <StepLabel>تحليل الأسعار</StepLabel>
+                  <StepLabel>تحليل الاسعار</StepLabel>
                 </Step>
                 <Step>
                   <StepLabel>توصيات التسعير</StepLabel>
@@ -304,7 +304,7 @@ function Pricing() {
                   }}
                   endIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <Send />}
                 >
-                  {isLoading ? 'جاري الحساب...' : 'احسب الربح الأمثل'}
+                  {isLoading ? 'جاري الحساب...' : 'احسب الربح الامثل'}
                 </Button>
 
                 {error && (
@@ -408,7 +408,7 @@ function Pricing() {
                       >
                         <CardContent sx={{ textAlign: 'center', py: 3 }}>
                           <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                            نسبة الربح الأمثل
+                            نسبة الربح الامثل
                           </Typography>
                           <Typography 
                             variant="h5" 
@@ -490,13 +490,13 @@ function Pricing() {
                             توصيات إضافية
                           </Typography>
                           <Typography variant="body2" paragraph>
-                            بناءً على تحليل الأسعار، نوصي بالتالي:
+                            بناءً على تحليل الاسعار، نوصي بالتالي:
                           </Typography>
                           <Typography variant="body2" sx={{ mb: 1 }}>
-                            • استخدم السعر النهائي المقترح لتحقيق أقصى ربح مع الحفاظ على المنافسة.
+                            • استخدم السعر النهائي المقترح لتحقيق اقصى ربح مع الحفاظ على المنافسة.
                           </Typography>
                           <Typography variant="body2" sx={{ mb: 1 }}>
-                            • قم بمراقبة أسعار المنافسين بشكل دوري وتعديل السعر عند الضرورة.
+                            • قم بمراقبة اسعار المنافسين بشكل دوري وتعديل السعر عند الضرورة.
                           </Typography>
                           <Typography variant="body2">
                             • استخدم استراتيجيات التسويق المناسبة لتبرير مستوى السعر للعملاء.
@@ -547,7 +547,7 @@ function Pricing() {
                 </Typography>
                 
                 <Typography variant="body1" align="center" paragraph sx={{ mb: 4 }}>
-                  يستخدم نظامنا تقنيات الذكاء الاصطناعي لتحليل بيانات السوق وتحديد أفضل سعر لمنتجاتك.
+                  يستخدم نظامنا تقنيات الذكاء الاصطناعي لتحليل بيانات السوق وتحديد افضل سعر لمنتجاتك.
                 </Typography>
                 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -566,7 +566,7 @@ function Pricing() {
                     >
                       <Typography sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>1</Typography>
                     </Box>
-                    <Typography>أدخل بيانات المنتج بما في ذلك القسم والمواصفات وسعر الجملة.</Typography>
+                    <Typography>ادخل بيانات المنتج بما في ذلك القسم والمواصفات وسعر الجملة.</Typography>
                   </Box>
                   
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -584,7 +584,7 @@ function Pricing() {
                     >
                       <Typography sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>2</Typography>
                     </Box>
-                    <Typography>يقوم النظام بتحليل الأسعار وتصنيف مستوى السعر في السوق.</Typography>
+                    <Typography>يقوم النظام بتحليل الاسعار وتصنيف مستوى السعر في السوق.</Typography>
                   </Box>
                   
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>

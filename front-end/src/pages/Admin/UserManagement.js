@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../../components/Header'; // Update the path based on your project structure
 import {
   Box,
   Typography,
@@ -53,6 +52,7 @@ const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [detailedError, setDetailedError] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,16 +80,20 @@ const UserManagement = () => {
   
   // Get token for API calls
   const getToken = () => {
-    return localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
+    console.log("Token from localStorage:", token ? "Token exists" : "No token found");
+    return token;
   };
   
   // Headers with token
   const getAuthHeaders = () => {
-    return {
+    const headers = {
       headers: {
         'Authorization': `Bearer ${getToken()}`
       }
     };
+    console.log("Auth headers:", headers);
+    return headers;
   };
   
   // Load users on component mount
@@ -101,13 +105,61 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     setError('');
+    setDetailedError('');
     
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/users', getAuthHeaders());
-      setUsers(response.data.users);
+      console.log("Fetching users from API...");
+      const apiUrl = 'http://localhost:5000/api/admin/users';
+      console.log("API URL:", apiUrl);
+      
+      const authHeaders = getAuthHeaders();
+      const response = await axios.get(apiUrl, authHeaders);
+      
+      console.log("API Response:", response.data);
+      
+      if (response.data && response.data.users) {
+        setUsers(response.data.users);
+        console.log(`Fetched ${response.data.users.length} users successfully`);
+      } else {
+        console.warn("Unexpected response format:", response.data);
+        setError('تنسيق استجابة غير متوقع من الخادم');
+        setDetailedError(`Unexpected response format: ${JSON.stringify(response.data)}`);
+      }
     } catch (err) {
       console.error('Error fetching users:', err);
-      setError('فشل في جلب بيانات المستخدمين. يرجى المحاولة مرة أخرى.');
+      
+      // Get more detailed error information
+      let errorMessage = 'فشل في جلب بيانات المستخدمين. يرجى المحاولة مرة أخرى.';
+      let detailedMessage = '';
+      
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        detailedMessage = `Server responded with status ${err.response.status}: ${JSON.stringify(err.response.data)}`;
+        console.error("Server Error Response:", {
+          status: err.response.status,
+          data: err.response.data,
+          headers: err.response.headers
+        });
+        
+        if (err.response.status === 401) {
+          errorMessage = 'جلسة منتهية. يرجى تسجيل الدخول مرة أخرى.';
+        } else if (err.response.status === 403) {
+          errorMessage = 'ليس لديك صلاحية الوصول لهذه البيانات.';
+        }
+      } else if (err.request) {
+        // The request was made but no response was received
+        detailedMessage = 'No response received from server. Check if the backend is running.';
+        console.error("No response received:", err.request);
+        errorMessage = 'لا يوجد استجابة من الخادم. تأكد من تشغيل الخادم.';
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        detailedMessage = `Error setting up request: ${err.message}`;
+        console.error("Request setup error:", err.message);
+      }
+      
+      setError(errorMessage);
+      setDetailedError(detailedMessage);
     } finally {
       setLoading(false);
     }
@@ -247,11 +299,9 @@ const UserManagement = () => {
     setFormLoading(true);
     setFormSuccess('');
     
-    const token = getToken();
-    console.log("Using token:", token);
-    console.log("Auth headers:", getAuthHeaders());
-    
     try {
+      console.log("Adding new user:", { ...formData, password: '***HIDDEN***' });
+      
       const response = await axios.post(
         'http://localhost:5000/api/admin/users',
         {
@@ -265,6 +315,8 @@ const UserManagement = () => {
         getAuthHeaders()
       );
       
+      console.log("Add user response:", response.data);
+      
       setFormSuccess('تم إنشاء المستخدم بنجاح');
       fetchUsers(); // Refresh user list
       
@@ -275,17 +327,18 @@ const UserManagement = () => {
       
     } catch (err) {
       console.error('Error adding user:', err);
+      
+      let errorMessage = 'فشل في إنشاء المستخدم. يرجى المحاولة مرة أخرى.';
+      
       if (err.response && err.response.data && err.response.data.message) {
-        setFormErrors(prev => ({
-          ...prev,
-          submit: err.response.data.message
-        }));
-      } else {
-        setFormErrors(prev => ({
-          ...prev,
-          submit: 'فشل في إنشاء المستخدم. يرجى المحاولة مرة أخرى.'
-        }));
+        errorMessage = err.response.data.message;
+        console.error("Server error response:", err.response.data);
       }
+      
+      setFormErrors(prev => ({
+        ...prev,
+        submit: errorMessage
+      }));
     } finally {
       setFormLoading(false);
     }
@@ -300,6 +353,8 @@ const UserManagement = () => {
     setFormSuccess('');
     
     try {
+      console.log("Updating user:", selectedUser._id, formData);
+      
       const response = await axios.put(
         `http://localhost:5000/api/admin/users/${selectedUser._id}`,
         {
@@ -312,6 +367,8 @@ const UserManagement = () => {
         getAuthHeaders()
       );
       
+      console.log("Update user response:", response.data);
+      
       setFormSuccess('تم تحديث بيانات المستخدم بنجاح');
       fetchUsers(); // Refresh user list
       
@@ -322,17 +379,17 @@ const UserManagement = () => {
       
     } catch (err) {
       console.error('Error updating user:', err);
+      
+      let errorMessage = 'فشل في تحديث بيانات المستخدم. يرجى المحاولة مرة أخرى.';
+      
       if (err.response && err.response.data && err.response.data.message) {
-        setFormErrors(prev => ({
-          ...prev,
-          submit: err.response.data.message
-        }));
-      } else {
-        setFormErrors(prev => ({
-          ...prev,
-          submit: 'فشل في تحديث بيانات المستخدم. يرجى المحاولة مرة أخرى.'
-        }));
+        errorMessage = err.response.data.message;
       }
+      
+      setFormErrors(prev => ({
+        ...prev,
+        submit: errorMessage
+      }));
     } finally {
       setFormLoading(false);
     }
@@ -347,6 +404,8 @@ const UserManagement = () => {
     setFormSuccess('');
     
     try {
+      console.log("Changing password for user:", selectedUser._id);
+      
       const response = await axios.put(
         `http://localhost:5000/api/admin/users/${selectedUser._id}/change-password`,
         {
@@ -354,6 +413,8 @@ const UserManagement = () => {
         },
         getAuthHeaders()
       );
+      
+      console.log("Change password response:", response.data);
       
       setFormSuccess('تم تغيير كلمة المرور بنجاح');
       
@@ -364,17 +425,17 @@ const UserManagement = () => {
       
     } catch (err) {
       console.error('Error changing password:', err);
+      
+      let errorMessage = 'فشل في تغيير كلمة المرور. يرجى المحاولة مرة أخرى.';
+      
       if (err.response && err.response.data && err.response.data.message) {
-        setFormErrors(prev => ({
-          ...prev,
-          submit: err.response.data.message
-        }));
-      } else {
-        setFormErrors(prev => ({
-          ...prev,
-          submit: 'فشل في تغيير كلمة المرور. يرجى المحاولة مرة أخرى.'
-        }));
+        errorMessage = err.response.data.message;
       }
+      
+      setFormErrors(prev => ({
+        ...prev,
+        submit: errorMessage
+      }));
     } finally {
       setFormLoading(false);
     }
@@ -386,17 +447,28 @@ const UserManagement = () => {
     setFormLoading(true);
     
     try {
+      console.log("Deleting user:", selectedUser._id);
+      
       await axios.delete(
         `http://localhost:5000/api/admin/users/${selectedUser._id}`,
         getAuthHeaders()
       );
+      
+      console.log("User deleted successfully");
       
       fetchUsers(); // Refresh user list
       handleCloseDialogs();
       
     } catch (err) {
       console.error('Error deleting user:', err);
-      setError('فشل في حذف المستخدم. يرجى المحاولة مرة أخرى.');
+      
+      let errorMessage = 'فشل في حذف المستخدم. يرجى المحاولة مرة أخرى.';
+      
+      if (err.response && err.response.data && err.response.data.message) {
+        errorMessage = err.response.data.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setFormLoading(false);
     }
@@ -733,11 +805,45 @@ const UserManagement = () => {
             </Box>
           </Box>
           
+          {/* Display error message if any */}
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {error}
+              {detailedError && (
+                <details>
+                  <summary style={{ cursor: 'pointer', marginTop: '8px' }}>تفاصيل الخطأ (للمطورين)</summary>
+                  <pre style={{ 
+                    marginTop: '8px', 
+                    padding: '8px', 
+                    backgroundColor: alpha(theme.palette.error.main, 0.1),
+                    borderRadius: '4px',
+                    overflow: 'auto',
+                    fontSize: '0.875rem'
+                  }}>
+                    {detailedError}
+                  </pre>
+                </details>
+              )}
             </Alert>
           )}
+          
+          {/* Display connection/token status */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary">
+              حالة الاتصال:
+              <Chip 
+                label={getToken() ? "متصل" : "غير متصل"}
+                color={getToken() ? "success" : "error"}
+                size="small"
+                sx={{ ml: 1 }}
+              />
+            </Typography>
+            {!getToken() && (
+              <Alert severity="warning" sx={{ mt: 1 }}>
+                الرمز المميز (token) غير موجود. قد تحتاج إلى تسجيل الدخول مرة أخرى.
+              </Alert>
+            )}
+          </Box>
           
           <Paper elevation={1} sx={{ borderRadius: 2, overflow: 'hidden' }}>
             <TableContainer>
@@ -796,7 +902,7 @@ const UserManagement = () => {
                                   onClick={() => handleOpenPasswordDialog(user)}
                                 >
                                   <KeyIcon fontSize="small" />
-                                </IconButton>
+                                  </IconButton>
                               </Tooltip>
                               
                               <Tooltip title="تعديل">

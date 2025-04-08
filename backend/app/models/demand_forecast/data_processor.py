@@ -64,10 +64,10 @@ class DemandDataProcessor:
         # Filter out rows with missing values
         df.dropna(subset=["year", "month", "total_quantity", "total_money_sold"], inplace=True)
         
-        # Create date column
-        df["date"] = pd.to_datetime(df.apply(
-            lambda x: f"{int(x['year'])}-{int(x['month'])}-01", axis=1
-        ))
+        # Create date column - Using datetime.strptime to ensure string input
+        df["date"] = df.apply(
+            lambda x: datetime(int(x['year']), int(x['month']), 1), axis=1
+        )
         
         # Sort by date
         df.sort_values(by="date", inplace=True)
@@ -137,10 +137,10 @@ class DemandDataProcessor:
         # Filter out rows with missing values
         df.dropna(subset=["year", "month", "total_quantity", "total_money_sold"], inplace=True)
         
-        # Create date column
-        df["date"] = pd.to_datetime(df.apply(
-            lambda x: f"{int(x['year'])}-{int(x['month'])}-01", axis=1
-        ))
+        # Create date column - Using datetime instead of string operations
+        df["date"] = df.apply(
+            lambda x: datetime(int(x['year']), int(x['month']), 1), axis=1
+        )
         
         # Sort by date
         df.sort_values(by="date", inplace=True)

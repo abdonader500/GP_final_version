@@ -276,7 +276,7 @@ class ForecastService:
         Train models for a specific category.
         
         Args:
-            df (pandas.DataFrame): Input dataframe
+            df (pd.DataFrame): Input dataframe
             category (str): Category to train for
             forecast_horizon (int): Number of periods to forecast
             test_size (float): Proportion of data to use for testing
@@ -664,15 +664,29 @@ class ForecastService:
         records = []
         for category, forecast in forecasts.items():
             for date, value in forecast.items():
-                # Extract year and month from date
-                year = date.year
-                month = date.month
+                # Extract year and month from date - handle both Period and datetime objects
+                if hasattr(date, 'year') and hasattr(date, 'month'):
+                    # This is for datetime objects
+                    year = date.year
+                    month = date.month
+                else:
+                    # For Period objects or string dates, convert to string and parse
+                    date_str = str(date)
+                    date_parts = date_str.split('-')
+                    if len(date_parts) >= 2:
+                        year = int(date_parts[0])
+                        month = int(date_parts[1])
+                    else:
+                        # Skip invalid dates
+                        logger.warning(f"Skipping invalid date format: {date}")
+                        continue
                 
                 record = {
                     "القسم": category,
                     "year": year,
                     "month": month,
-                    "predicted_quantity": float(value)
+                    "predicted_quantity": float(value),
+                    "predicted_money_sold": float(value * 100)  # Placeholder, should use actual price data
                 }
                 
                 records.append(record)
@@ -685,6 +699,62 @@ class ForecastService:
             
         except Exception as e:
             logger.error(f"Error saving forecasts to MongoDB: {e}")
+            return False
+
+    def save_item_forecasts_to_mongodb(self, forecasts, collection_name="predicted_item_demand_2025"):
+        """
+        Save item-level forecasts to MongoDB.
+        
+        Args:
+            forecasts (dict): Dictionary with forecasts by category and specification
+            collection_name (str): Name of the collection to save to
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        logger.info(f"Saving item-level forecasts to MongoDB collection: {collection_name}")
+        
+        # Prepare records for MongoDB
+        records = []
+        for category, specs in forecasts.items():
+            for spec, forecast in specs.items():
+                for date, value in forecast.items():
+                    # Extract year and month from date - handle both Period and datetime objects
+                    if hasattr(date, 'year') and hasattr(date, 'month'):
+                        # This is for datetime objects
+                        year = date.year
+                        month = date.month
+                    else:
+                        # For Period objects or string dates, convert to string and parse
+                        date_str = str(date)
+                        date_parts = date_str.split('-')
+                        if len(date_parts) >= 2:
+                            year = int(date_parts[0])
+                            month = int(date_parts[1])
+                        else:
+                            # Skip invalid dates
+                            logger.warning(f"Skipping invalid date format: {date}")
+                            continue
+                    
+                    record = {
+                        "القسم": category,
+                        "product_specification": spec,
+                        "year": year,
+                        "month": month,
+                        "predicted_quantity": float(value),
+                        "predicted_money_sold": float(value * 100)  # Placeholder, should use actual price data
+                    }
+                    
+                    records.append(record)
+                    
+        # Insert into MongoDB
+        try:
+            inserted_count = insert_data(collection_name, records)
+            logger.info(f"Inserted {inserted_count} item-level forecast records into {collection_name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error saving item-level forecasts to MongoDB: {e}")
             return False
     
     def generate_item_level_forecasts(self, categories=None, specifications=None, steps=12, freq='M'):
@@ -720,8 +790,6 @@ class ForecastService:
         if processed_data is None:
             logger.warning("Failed to preprocess item-level data")
             return None
-            
-        # If no categories specified, extract all categories from data
         if categories is None:
             categories = processed_data['القسم'].unique().tolist()
             
@@ -776,7 +844,6 @@ class ForecastService:
                         forecasts[category][spec] = forecast
                         
         return forecasts
-    
     def save_item_forecasts_to_mongodb(self, forecasts, collection_name="predicted_item_demand_2025"):
         """
         Save item-level forecasts to MongoDB.
@@ -906,26 +973,26 @@ class ForecastService:
         logger.info("Forecasting workflow completed")
         return results
 
-# Function to run the forecasting workflow
-def run_demand_forecast():
-    """
-    Run the demand forecasting workflow.
-    
-    Returns:
-        dict: Workflow results
-    """
-    # Initialize forecast service
-    forecast_service = ForecastService()
-    
-    # Run forecasting workflow
-    results = forecast_service.run_forecasting_workflow(
-        train_models=True,
-        generate_forecasts=True,
-        save_to_mongodb=True,
-        forecast_horizon=12
-    )
-    
-    return results
+    # Function to run the forecasting workflow
+    def run_demand_forecast():
+        """
+        Run the demand forecasting workflow.
+        
+        Returns:
+            dict: Workflow results
+        """
+        # Initialize forecast service
+        forecast_service = ForecastService()
+        
+        # Run forecasting workflow
+        results = forecast_service.run_forecasting_workflow(
+            train_models=True,
+            generate_forecasts=True,
+            save_to_mongodb=True,
+            forecast_horizon=12
+        )
+        
+        return results
 
-if __name__ == "__main__":
-    run_demand_forecast()
+    if __name__ == "__main__":
+        run_demand_forecast()

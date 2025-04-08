@@ -6,6 +6,7 @@ import {
   Typography,
   CircularProgress,
   Alert,
+  AlertTitle,
   Grid,
   FormControl,
   InputLabel,
@@ -21,13 +22,35 @@ import {
   Switch,
   Stack,
   Button,
+  Paper,
+  Divider,
   alpha,
   useTheme,
+  Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  LinearProgress,
+  Stepper,
+  Step,
+  StepLabel,
+  Tooltip,
 } from "@mui/material";
 import {
   ShowChart,
   CategoryRounded,
   Inventory2Outlined,
+  Autorenew,
+  Check,
+  Info,
+  Warning,
+  BarChart,
+  Timeline,
+  CalendarMonth,
+  TrendingUp,
+  Analytics,
 } from "@mui/icons-material";
 import Chart from "react-apexcharts";
 import axios from "axios";
@@ -59,6 +82,24 @@ function DemandForecastComponent() {
   // State for toggling quantity and net profit display
   const [showQuantity, setShowQuantity] = useState(true);
   const [showNetProfit, setShowNetProfit] = useState(true);
+
+  // State for AI forecast
+  const [isRunningForecast, setIsRunningForecast] = useState(false);
+  const [forecastSuccess, setForecastSuccess] = useState(false);
+  const [forecastError, setForecastError] = useState(null);
+  const [showForecastDialog, setShowForecastDialog] = useState(false);
+  const [forecastProgress, setForecastProgress] = useState(0);
+  const [forecastStep, setForecastStep] = useState(0);
+  const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
+
+  // State for model metrics
+  const [modelMetrics, setModelMetrics] = useState({});
+  const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
+  const [bestModel, setBestModel] = useState(null);
+
+  // State for showing the seasonal comparison chart
+  const [showSeasonalComparison, setShowSeasonalComparison] = useState(false);
+  const [seasonalPatterns, setSeasonalPatterns] = useState([]);
 
   // Handle sub-tab change
   const handleSubTabChange = (event, newValue) => {
@@ -98,6 +139,14 @@ function DemandForecastComponent() {
       if (cats.length > 0 && !selectedCategory) {
         setSelectedCategory(cats[0]);
       }
+
+      // Also fetch model metrics for the first category
+      if (cats.length > 0) {
+        fetchModelMetrics(cats[0]);
+      }
+
+      // Fetch seasonal patterns for all categories
+      fetchSeasonalPatterns();
       
     } catch (err) {
       setErrorDemand("فشل في جلب بيانات الطلب. يرجى المحاولة مرة أخرى.");
@@ -136,6 +185,9 @@ function DemandForecastComponent() {
       // Set all specifications as selected by default
       setSelectedItemSpecifications(specs);
       setAllItemsSelected(true);
+
+      // Fetch model metrics for this category
+      fetchModelMetrics(selectedCategory);
       
     } catch (err) {
       setErrorItemDemand("فشل في جلب بيانات الطلب على مستوى المنتجات. يرجى المحاولة مرة أخرى.");
@@ -145,12 +197,64 @@ function DemandForecastComponent() {
     }
   };
 
+  // Fetch model metrics for a category
+  const fetchModelMetrics = async (category) => {
+    setIsLoadingMetrics(true);
+    try {
+      const response = await axios.get(
+        "http://localhost:5000/api/demand-forecasting/get-model-metrics",
+        {
+          params: {
+            category: category
+          }
+        }
+      );
+
+      if (response.data.success && response.data.data) {
+        setModelMetrics(response.data.data);
+        
+        // Find the best model
+        const models = response.data.data;
+        let bestModelId = null;
+        let lowestRMSE = Infinity;
+        
+        Object.entries(models).forEach(([id, model]) => {
+          if (model.metrics && model.metrics.rmse && model.metrics.rmse < lowestRMSE) {
+            lowestRMSE = model.metrics.rmse;
+            bestModelId = id;
+          }
+        });
+        
+        setBestModel(bestModelId ? models[bestModelId] : null);
+      }
+    } catch (err) {
+      console.error("Error fetching model metrics:", err);
+    } finally {
+      setIsLoadingMetrics(false);
+    }
+  };
+
+  // Fetch seasonal patterns
+  const fetchSeasonalPatterns = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:5000/api/demand-forecasting/get-seasonal-patterns"
+      );
+
+      if (response.data.success && response.data.data) {
+        setSeasonalPatterns(response.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching seasonal patterns:", err);
+    }
+  };
+
   // Handle category selection change for category-level tab
   const handleDemandCategoryChange = (event) => {
     const value = event.target.value;
     if (value[value.length - 1] === "all") {
       setSelectedDemandCategories(
-        categories.length === selectedDemandCategories.length ? [] : categories
+        categories.length === selectedDemandCategories.length ? [] : [...categories]
       );
       setAllCategoriesSelected(!allCategoriesSelected);
       return;
@@ -170,7 +274,7 @@ function DemandForecastComponent() {
     
     if (value[value.length - 1] === "all") {
       setSelectedItemSpecifications(
-        itemSpecifications.length === selectedItemSpecifications.length ? [] : itemSpecifications
+        itemSpecifications.length === selectedItemSpecifications.length ? [] : [...itemSpecifications]
       );
       setAllItemsSelected(!allItemsSelected);
       return;
@@ -178,6 +282,70 @@ function DemandForecastComponent() {
     
     setSelectedItemSpecifications(value);
     setAllItemsSelected(false);
+  };
+
+  // Run AI forecast
+  const runAIForecast = async () => {
+    setIsRunningForecast(true);
+    setForecastError(null);
+    setShowForecastDialog(true);
+    setForecastProgress(0);
+    setForecastStep(0);
+    
+    // Simulate progress (will actually run on the server)
+    const progressInterval = setInterval(() => {
+      setForecastProgress((prev) => {
+        const newProgress = prev + 5;
+        if (newProgress >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return newProgress;
+      });
+      
+      // Update step based on progress
+      setForecastStep((prev) => {
+        if (forecastProgress < 30) return 0;
+        if (forecastProgress < 70) return 1;
+        return 2;
+      });
+    }, 1500);
+    
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/demand-forecasting/run-ai-forecast",
+        {
+          train_models: true,
+          generate_forecasts: true,
+          save_to_mongodb: true,
+          forecast_horizon: 12
+        }
+      );
+      
+      if (response.data.success) {
+        clearInterval(progressInterval);
+        setForecastProgress(100);
+        setForecastStep(3);
+        setForecastSuccess(true);
+        setTimeout(() => {
+          setShowForecastDialog(false);
+          setShowSuccessSnackbar(true);
+          // Refresh data after successful forecast
+          fetchCategoryDemandData();
+        }, 2000);
+      } else {
+        clearInterval(progressInterval);
+        setForecastError(response.data.message || "فشل في تشغيل نظام التنبؤ الذكي.");
+      }
+    } catch (err) {
+      clearInterval(progressInterval);
+      console.error("Error running AI forecast:", err);
+      setForecastError(
+        err.response?.data?.message || "فشل في تشغيل نظام التنبؤ الذكي. يرجى المحاولة مرة أخرى."
+      );
+    } finally {
+      setIsRunningForecast(false);
+    }
   };
 
   // Process demand data for quantity chart (category-level)
@@ -326,10 +494,21 @@ function DemandForecastComponent() {
     return itemProfitTotals;
   };
 
+  // Process seasonal patterns data
+  const processSeasonalPatternsData = () => {
+    if (!seasonalPatterns.length) return [];
+
+    return [{
+      name: "متوسط الكمية الشهرية",
+      data: seasonalPatterns.map(item => item.average_quantity)
+    }];
+  };
+
   const categoryDemandQuantitySeries = processDemandQuantityData();
   const categoryDemandNetProfitSeries = processDemandNetProfitData();
   const itemDemandQuantitySeries = processItemDemandQuantityData();
   const itemDemandNetProfitSeries = processItemDemandNetProfitData();
+  const seasonalPatternsSeries = processSeasonalPatternsData();
 
   // Create a custom color palette that matches theme
   const getColorPalette = () => {
@@ -508,7 +687,10 @@ function DemandForecastComponent() {
         },
         xaxis: {
           type: "category",
-          categories: Array.from({ length: 12 }, (_, i) => String(i + 1)),
+          categories: Array.from({ length: 12 }, (_, i) => {
+            const date = new Date(2025, i, 1);
+            return date.toLocaleString('ar-EG', { month: 'short' });
+          }),
           labels: {
             style: {
               colors: theme.palette.text.secondary,
@@ -718,7 +900,10 @@ function DemandForecastComponent() {
         },
         xaxis: {
           type: "category",
-          categories: Array.from({ length: 12 }, (_, i) => String(i + 1)),
+          categories: Array.from({ length: 12 }, (_, i) => {
+            const date = new Date(2025, i, 1);
+            return date.toLocaleString('ar-EG', { month: 'short' });
+          }),
           labels: {
             style: {
               colors: theme.palette.text.secondary,
@@ -820,12 +1005,132 @@ function DemandForecastComponent() {
     }
   };
 
+  // Chart options for seasonal patterns
+  const seasonalPatternsOptions = {
+    chart: {
+      type: "bar",
+      height: 280,
+      background: "transparent",
+      toolbar: {
+        show: true,
+      },
+      fontFamily: theme.typography.fontFamily,
+    },
+    title: {
+      text: "نمط الطلب الموسمي",
+      align: "center",
+      style: {
+        fontSize: "18px",
+        fontWeight: 600,
+        fontFamily: theme.typography.fontFamily,
+        color: theme.palette.text.primary,
+      },
+    },
+    xaxis: {
+      type: "category",
+      categories: Array.from({ length: 12 }, (_, i) => {
+        const date = new Date(2025, i, 1);
+        return date.toLocaleString('ar-EG', { month: 'short' });
+      }),
+      labels: {
+        style: {
+          colors: theme.palette.text.secondary,
+          fontFamily: theme.typography.fontFamily,
+        },
+      },
+      title: {
+        text: "الشهر",
+        style: {
+          color: theme.palette.text.secondary,
+          fontFamily: theme.typography.fontFamily,
+          fontWeight: 500,
+        },
+      },
+    },
+    yaxis: {
+      title: {
+        text: "متوسط الكمية",
+        style: {
+          color: theme.palette.text.secondary,
+          fontFamily: theme.typography.fontFamily,
+          fontWeight: 500,
+        },
+      },
+      labels: {
+        style: {
+          colors: theme.palette.text.secondary,
+          fontFamily: theme.typography.fontFamily,
+        },
+        formatter: (value) => Math.round(value),
+      },
+    },
+    colors: [theme.palette.info.main],
+    plotOptions: {
+      bar: {
+        borderRadius: 4,
+        columnWidth: '70%',
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: function (val) {
+        return Math.round(val);
+      },
+      style: {
+        fontSize: '12px',
+        colors: ['#fff'],
+        fontFamily: theme.typography.fontFamily,
+      },
+    },
+    grid: {
+      borderColor: theme.palette.divider,
+      strokeDashArray: 3,
+      opacity: 0.5,
+    },
+    tooltip: {
+      theme: theme.palette.mode,
+      y: {
+        formatter: (value) => Math.round(value),
+      },
+      style: {
+        fontFamily: theme.typography.fontFamily,
+      },
+    },
+  };
+
+  // Find peak months from seasonal patterns
+  const findPeakMonths = () => {
+    if (!seasonalPatterns.length) return [];
+    
+    // Get avg value to determine threshold
+    const avgQuantity = seasonalPatterns.reduce((acc, item) => acc + item.average_quantity, 0) / seasonalPatterns.length;
+    const threshold = avgQuantity * 1.2; // 20% above average
+    
+    // Find months above threshold
+    const peaks = seasonalPatterns
+      .filter(item => item.average_quantity > threshold)
+      .sort((a, b) => b.average_quantity - a.average_quantity);
+    
+    return peaks.map(peak => {
+      const date = new Date(2025, peak.month - 1, 1);
+      const monthName = date.toLocaleString('ar-EG', { month: 'long' });
+      const percentage = ((peak.average_quantity / avgQuantity) - 1) * 100;
+      
+      return {
+        month: monthName,
+        percentage: Math.round(percentage)
+      };
+    });
+  };
+
+  const peakMonths = findPeakMonths();
+
   // Render filter panel for category-level tab
   const renderCategoryFilterPanel = () => {
     return (
       <Box sx={{ p: 2 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={5}>
             <FormControl fullWidth size="small">
               <InputLabel id="category-forecast-label">
                 اختر الأقسام
@@ -868,7 +1173,7 @@ function DemandForecastComponent() {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <Stack direction="row" spacing={2} alignItems="center">
               <FormControlLabel
                 control={
@@ -899,24 +1204,34 @@ function DemandForecastComponent() {
           <Grid
             item
             xs={12}
-            md={2}
-            sx={{ display: "flex", justifyContent: "flex-end" }}
+            md={4}
+            sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}
           >
+            <Button
+              variant="outlined"
+              color="info"
+              startIcon={<Analytics />}
+              onClick={() => setShowSeasonalComparison(!showSeasonalComparison)}
+              sx={{ height: "40px" }}
+            >
+              {showSeasonalComparison ? "إخفاء" : "عرض"} التحليل الموسمي
+            </Button>
+            
             <Button
               variant="contained"
               color="primary"
               startIcon={
-                isLoadingDemand ? (
+                isRunningForecast ? (
                   <CircularProgress size={20} color="inherit" />
                 ) : (
-                  <ShowChart />
+                  <Autorenew />
                 )
               }
-              onClick={fetchCategoryDemandData}
-              disabled={isLoadingDemand}
+              onClick={runAIForecast}
+              disabled={isRunningForecast}
               sx={{ height: "40px", minWidth: "140px" }}
             >
-              تحديث البيانات
+              تشغيل النموذج
             </Button>
           </Grid>
         </Grid>
@@ -949,12 +1264,51 @@ function DemandForecastComponent() {
               </Select>
             </FormControl>
           </Grid>
+          
+          <Grid item xs={12} md={3}>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={showQuantity}
+                    onChange={(e) => setShowQuantity(e.target.checked)}
+                    color="primary"
+                    size="small"
+                  />
+                }
+                label="عرض الكمية"
+              />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={showNetProfit}
+                    onChange={(e) => setShowNetProfit(e.target.checked)}
+                    color="success"
+                    size="small"
+                  />
+                }
+                label="عرض الصافي"
+              />
+            </Stack>
+          </Grid>
+          
           <Grid
             item
             xs={12}
-            md={2}
-            sx={{ display: "flex", justifyContent: "flex-end" }}
+            md={6}
+            sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}
           >
+            <Button
+              variant="outlined"
+              color="info"
+              startIcon={<Analytics />}
+              onClick={() => setShowSeasonalComparison(!showSeasonalComparison)}
+              sx={{ height: "40px" }}
+            >
+              {showSeasonalComparison ? "إخفاء" : "عرض"} التحليل الموسمي
+            </Button>
+            
             <Button
               variant="contained"
               color="primary"
@@ -971,9 +1325,182 @@ function DemandForecastComponent() {
             >
               تحديث البيانات
             </Button>
+            
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={
+                isRunningForecast ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <Autorenew />
+                )
+              }
+              onClick={runAIForecast}
+              disabled={isRunningForecast}
+              sx={{ height: "40px", minWidth: "140px" }}
+            >
+              تشغيل النموذج
+            </Button>
           </Grid>
         </Grid>
       </Box>
+    );
+  };
+
+  // Render AI forecast dialog
+  const renderForecastDialog = () => {
+    return (
+      <Dialog
+        open={showForecastDialog}
+        onClose={forecastSuccess ? () => setShowForecastDialog(false) : undefined}
+        maxWidth="sm"
+        fullWidth
+        aria-labelledby="forecast-dialog-title"
+      >
+        <DialogTitle id="forecast-dialog-title">
+          {forecastSuccess ? "تم بنجاح" : "جاري تشغيل نظام التنبؤ الذكي"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {forecastError ? (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {forecastError}
+              </Alert>
+            ) : forecastSuccess ? (
+              <Alert severity="success" sx={{ mt: 2 }}>
+                تم تشغيل نظام التنبؤ الذكي بنجاح!
+              </Alert>
+            ) : (
+              <>
+                <Typography variant="body2" gutterBottom>
+                  يقوم النظام الآن بتدريب نماذج التنبؤ وإنشاء التوقعات. قد تستغرق هذه العملية بضع دقائق.
+                </Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={forecastProgress}
+                  sx={{ my: 3, height: 10, borderRadius: 5 }}
+                />
+                <Typography variant="body2" align="center">
+                  {forecastProgress}% مكتمل
+                </Typography>
+              </>
+            )}
+          </DialogContentText>
+
+          <Stepper activeStep={forecastStep} sx={{ mt: 4 }}>
+            <Step>
+              <StepLabel>تحليل البيانات</StepLabel>
+            </Step>
+            <Step>
+              <StepLabel>تدريب النماذج</StepLabel>
+            </Step>
+            <Step>
+              <StepLabel>إنشاء التوقعات</StepLabel>
+            </Step>
+          </Stepper>
+        </DialogContent>
+        <DialogActions>
+          {(forecastSuccess || forecastError) && (
+            <Button onClick={() => setShowForecastDialog(false)}>إغلاق</Button>
+          )}
+        </DialogActions>
+      </Dialog>
+    );
+  };
+
+  // Render model metrics card
+  const renderModelMetricsCard = () => {
+    if (!bestModel) return null;
+
+    return (
+      <Card 
+        elevation={3} 
+        sx={{ 
+          borderRadius: 3, 
+          overflow: "hidden", 
+          mb: 3,
+          backgroundColor: alpha(theme.palette.primary.main, 0.04),
+        }}
+      >
+        <CardContent>
+          <Typography variant="h6" gutterBottom color="primary">
+            <Analytics sx={{ verticalAlign: "middle", mr: 1 }} />
+            معلومات نموذج التنبؤ
+          </Typography>
+
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" color="text.secondary">
+                نوع النموذج:
+              </Typography>
+              <Typography variant="body1" fontWeight="medium">
+                {bestModel.model_type === 'arima' ? 'ARIMA (نموذج انحدار متكامل متوسط متحرك)' : 
+                bestModel.model_type === 'exp_smoothing' ? 'التمهيد الأسي' : 
+                bestModel.model_type === 'prophet' ? 'Prophet (نموذج السلاسل الزمنية)' : 
+                bestModel.model_type}
+              </Typography>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" color="text.secondary">
+                القسم:
+              </Typography>
+              <Typography variant="body1" fontWeight="medium">
+                {bestModel.category}
+              </Typography>
+            </Grid>
+
+            {bestModel.metrics && (
+              <>
+                <Grid item xs={12} md={3}>
+                  <Typography variant="body2" color="text.secondary">
+                    RMSE (جذر متوسط مربع الخطأ):
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium" color={theme.palette.success.main}>
+                    {bestModel.metrics.rmse ? bestModel.metrics.rmse.toFixed(2) : 'غير متاح'}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} md={3}>
+                  <Typography variant="body2" color="text.secondary">
+                    MAE (متوسط الخطأ المطلق):
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {bestModel.metrics.mae ? bestModel.metrics.mae.toFixed(2) : 'غير متاح'}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} md={3}>
+                  <Typography variant="body2" color="text.secondary">
+                    MAPE (النسبة المئوية للخطأ المطلق):
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {bestModel.metrics.mape ? `${bestModel.metrics.mape.toFixed(2)}%` : 'غير متاح'}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} md={3}>
+                  <Typography variant="body2" color="text.secondary">
+                    R² (معامل التحديد):
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {bestModel.metrics.r2 ? bestModel.metrics.r2.toFixed(4) : 'غير متاح'}
+                  </Typography>
+                </Grid>
+              </>
+            )}
+          </Grid>
+
+          <Box sx={{ mt: 2, p: 2, bgcolor: alpha(theme.palette.info.main, 0.05), borderRadius: 2 }}>
+            <Typography variant="body2">
+              <Info fontSize="small" sx={{ verticalAlign: "middle", mr: 1, color: theme.palette.info.main }} />
+              تم تدريب هذا النموذج باستخدام البيانات التاريخية من 2021 إلى 2024 لإنتاج تنبؤات دقيقة لعام 2025. 
+              كلما انخفضت قيمة RMSE، زادت دقة النموذج في التنبؤ.
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -1008,59 +1535,96 @@ function DemandForecastComponent() {
           </Alert>
         )}
 
-      {!isLoadingDemand &&
-        !errorDemand &&
-        Object.keys(demandData).length > 0 && (
-          <Grid container spacing={3}>
-            {showQuantity && categoryDemandQuantitySeries.length > 0 && (
-              <Grid item xs={12}>
-                <Card
-                  elevation={3}
-                  sx={{
-                    borderRadius: 3,
-                    overflow: "hidden",
-                    maxWidth: "1200px",
-                    mx: "auto",
-                  }}
-                >
-                  <CardContent sx={{ p: 2 }}>
-                    <Chart
-                      options={quantityChartOptions(false)}
-                      series={categoryDemandQuantitySeries}
-                      type="line"
-                      height={400}
-                      width="100%"
-                    />
-                  </CardContent>
-                </Card>
-              </Grid>
-            )}
+      {!isLoadingDemand && !errorDemand && Object.keys(demandData).length > 0 && (
+        <Grid container spacing={3}>
+          {/* Model metrics card */}
+          {bestModel && renderModelMetricsCard()}
 
-            {showNetProfit && categoryDemandNetProfitSeries.length > 0 && (
-              <Grid item xs={12}>
-                <Card
-                  elevation={3}
-                  sx={{
-                    borderRadius: 3,
-                    overflow: "hidden",
-                    maxWidth: "1200px",
-                    mx: "auto",
-                  }}
-                >
-                  <CardContent sx={{ p: 2 }}>
-                    <Chart
-                      options={netProfitChartOptions(false)}
-                      series={categoryDemandNetProfitSeries}
-                      type="area"
-                      height={400}
-                      width="100%"
-                    />
-                  </CardContent>
-                </Card>
-              </Grid>
-            )}
-          </Grid>
-        )}
+          {/* Seasonal analysis */}
+          {showSeasonalComparison && seasonalPatterns.length > 0 && (
+            <Grid item xs={12}>
+              <Card elevation={3} sx={{ borderRadius: 3, overflow: "hidden" }}>
+                <CardContent>
+                  <Chart
+                    options={seasonalPatternsOptions}
+                    series={seasonalPatternsSeries}
+                    type="bar"
+                    height={350}
+                  />
+                  
+                  {/* Seasonal insights */}
+                  <Box sx={{ mt: 3, p: 2, bgcolor: alpha(theme.palette.info.main, 0.05), borderRadius: 2 }}>
+                    <Typography variant="subtitle1" color="primary" fontWeight="bold" gutterBottom>
+                      <CalendarMonth sx={{ verticalAlign: 'middle', mr: 1 }} />
+                      تحليل الأنماط الموسمية
+                    </Typography>
+                    <Divider sx={{ mb: 2 }} />
+                    
+                    <Box sx={{ ml: 4 }}>
+                      <Typography paragraph>
+                        <strong>• مواسم ذروة الطلب:</strong> {peakMonths.length > 0 ? (
+                          peakMonths.map(peak => `${peak.month} (+${peak.percentage}%)`).join('، ')
+                        ) : 'لا توجد بيانات كافية'}
+                      </Typography>
+                      <Typography>
+                        <strong>• توصيات:</strong> زيادة المخزون وتكثيف الحملات التسويقية قبل شهر من بداية مواسم الذروة
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+
+          {showQuantity && categoryDemandQuantitySeries.length > 0 && (
+            <Grid item xs={12}>
+              <Card
+                elevation={3}
+                sx={{
+                  borderRadius: 3,
+                  overflow: "hidden",
+                  maxWidth: "1200px",
+                  mx: "auto",
+                }}
+              >
+                <CardContent sx={{ p: 2 }}>
+                  <Chart
+                    options={quantityChartOptions(false)}
+                    series={categoryDemandQuantitySeries}
+                    type="line"
+                    height={400}
+                    width="100%"
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+
+          {showNetProfit && categoryDemandNetProfitSeries.length > 0 && (
+            <Grid item xs={12}>
+              <Card
+                elevation={3}
+                sx={{
+                  borderRadius: 3,
+                  overflow: "hidden",
+                  maxWidth: "1200px",
+                  mx: "auto",
+                }}
+              >
+                <CardContent sx={{ p: 2 }}>
+                  <Chart
+                    options={netProfitChartOptions(false)}
+                    series={categoryDemandNetProfitSeries}
+                    type="area"
+                    height={400}
+                    width="100%"
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+        </Grid>
+      )}
     </Box>
   );
 
@@ -1109,6 +1673,45 @@ function DemandForecastComponent() {
         !errorItemDemand &&
         itemDemandData[selectedCategory] && (
           <Grid container spacing={3}>
+            {/* Model metrics card */}
+            {bestModel && renderModelMetricsCard()}
+
+            {/* Seasonal analysis */}
+            {showSeasonalComparison && seasonalPatterns.length > 0 && (
+              <Grid item xs={12}>
+                <Card elevation={3} sx={{ borderRadius: 3, overflow: "hidden" }}>
+                  <CardContent>
+                    <Chart
+                      options={seasonalPatternsOptions}
+                      series={seasonalPatternsSeries}
+                      type="bar"
+                      height={350}
+                    />
+                    
+                    {/* Seasonal insights */}
+                    <Box sx={{ mt: 3, p: 2, bgcolor: alpha(theme.palette.info.main, 0.05), borderRadius: 2 }}>
+                      <Typography variant="subtitle1" color="primary" fontWeight="bold" gutterBottom>
+                        <CalendarMonth sx={{ verticalAlign: 'middle', mr: 1 }} />
+                        تحليل الأنماط الموسمية
+                      </Typography>
+                      <Divider sx={{ mb: 2 }} />
+                      
+                      <Box sx={{ ml: 4 }}>
+                        <Typography paragraph>
+                          <strong>• مواسم ذروة الطلب:</strong> {peakMonths.length > 0 ? (
+                            peakMonths.map(peak => `${peak.month} (+${peak.percentage}%)`).join('، ')
+                          ) : 'لا توجد بيانات كافية'}
+                        </Typography>
+                        <Typography>
+                          <strong>• توصيات:</strong> زيادة المخزون وتكثيف الحملات التسويقية قبل شهر من بداية مواسم الذروة
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
             {itemDemandQuantitySeries.length === 0 && showQuantity && (
               <Grid item xs={12}>
                 <Alert severity="info">
@@ -1231,65 +1834,107 @@ function DemandForecastComponent() {
               </Grid>
             )}
             
-            {/* Additional analysis card - only show if we have data */}
-            {(itemDemandQuantitySeries.length > 0 || itemDemandNetProfitSeries.length > 0) && (
+            {/* Insights and Recommendations */}
+            {(showQuantity || showNetProfit) && (itemDemandQuantitySeries.length > 0 || itemDemandNetProfitSeries.length > 0) && (
               <Grid item xs={12}>
-                <Card
-                  elevation={3}
-                  sx={{
-                    borderRadius: 3,
-                    overflow: "hidden",
-                    p: 3,
-                    bgcolor: alpha(theme.palette.info.main, 0.05),
-                  }}
-                >
-                  <Typography variant="h6" gutterBottom>
-                    تحليل توقعات الطلب للمنتجات ({selectedCategory})
-                  </Typography>
-                  
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} md={7}>
-                      <Typography variant="body1" paragraph>
-                        بناءً على بيانات التوقعات لعام 2025، يمكن ملاحظة ما يلي:
-                      </Typography>
-                      
-                      <Typography variant="body2" paragraph>
-                        • يتم عرض المنتجات التي تشكل ٤٪ أو أكثر من إجمالي الطلب فقط للتركيز على المنتجات الأكثر أهمية
-                      </Typography>
-                      
-                      {itemDemandQuantitySeries.length > 0 && (
-                        <Typography variant="body2" paragraph>
-                          • يتركز الطلب في {itemDemandQuantitySeries[0].name} بنسبة {itemDemandQuantitySeries[0].percentage.toFixed(1)}% من الكمية الإجمالية
-                        </Typography>
-                      )}
-                      
-                      {itemDemandQuantitySeries.length > 5 && (
-                        <Typography variant="body2">
-                          • تشكل المنتجات الخمسة الأولى أكثر من {
-                            itemDemandQuantitySeries.slice(0, 5).reduce((sum, item) => sum + item.percentage, 0).toFixed(1)
-                          }% من إجمالي الطلب المتوقع
-                        </Typography>
-                      )}
-                    </Grid>
+                <Card elevation={3} sx={{ borderRadius: 3, overflow: "hidden" }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      <TrendingUp sx={{ verticalAlign: "middle", mr: 1 }} />
+                      تحليلات وتوصيات للمنتجات
+                    </Typography>
                     
-                    <Grid item xs={12} md={5}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        توصيات:
-                      </Typography>
+                    <Grid container spacing={3} sx={{ mt: 1 }}>
+                      {/* High Demand Items */}
+                      <Grid item xs={12} md={4}>
+                        <Paper 
+                          elevation={0} 
+                          sx={{ 
+                            p: 2, 
+                            bgcolor: alpha(theme.palette.success.main, 0.1),
+                            borderRadius: 2,
+                            border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`
+                          }}
+                        >
+                          <Typography variant="subtitle1" color="success.main" fontWeight="bold" gutterBottom>
+                            منتجات عالية الطلب
+                          </Typography>
+                          <Typography variant="body2" paragraph sx={{ mb: 2 }}>
+                            هذه المنتجات تشكل نسبة كبيرة من الطلب ويجب التركيز على توفرها باستمرار.
+                          </Typography>
+                          
+                          <Box component="ul" sx={{ pl: 2, mb: 0 }}>
+                            {itemDemandQuantitySeries.slice(0, 3).map((item, index) => (
+                              <Typography component="li" variant="body2" key={index} sx={{ mb: 0.5 }}>
+                                {item.name} ({item.percentage.toFixed(1)}% من الكمية)
+                              </Typography>
+                            ))}
+                          </Box>
+                        </Paper>
+                      </Grid>
                       
-                      <Typography variant="body2" paragraph>
-                        1. التركيز على زيادة مخزون المنتجات الرئيسية بناءً على نسب التوقعات
-                      </Typography>
+                      {/* Seasonal Planning */}
+                      <Grid item xs={12} md={4}>
+                        <Paper 
+                          elevation={0} 
+                          sx={{ 
+                            p: 2, 
+                            bgcolor: alpha(theme.palette.warning.main, 0.1),
+                            borderRadius: 2,
+                            border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                            height: '100%'
+                          }}
+                        >
+                          <Typography variant="subtitle1" color="warning.main" fontWeight="bold" gutterBottom>
+                            التخطيط الموسمي
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            ينصح بزيادة المخزون قبل موسم الذروة بشهر على الأقل.
+                          </Typography>
+                          
+                          <Typography variant="body2" paragraph>
+                            {peakMonths.length > 0 ? (
+                              <>
+                                يجب التركيز على المنتجات عالية الطلب خلال أشهر: {' '}
+                                <strong>{peakMonths.map(peak => peak.month).join('، ')}</strong>
+                              </>
+                            ) : (
+                              'حافظ على مستويات متوازنة من المخزون على مدار السنة.'
+                            )}
+                          </Typography>
+                        </Paper>
+                      </Grid>
                       
-                      <Typography variant="body2" paragraph>
-                        2. تحسين استراتيجيات التسعير للمنتجات الأقل طلباً لتحفيز المبيعات
-                      </Typography>
-                      
-                      <Typography variant="body2">
-                        3. مراقبة الطلب الفعلي مقابل المتوقع بشكل دوري وتعديل الخطط وفقاً لذلك
-                      </Typography>
+                      {/* Profit Maximization */}
+                      <Grid item xs={12} md={4}>
+                        <Paper 
+                          elevation={0} 
+                          sx={{ 
+                            p: 2, 
+                            bgcolor: alpha(theme.palette.info.main, 0.1),
+                            borderRadius: 2,
+                            border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                            height: '100%'
+                          }}
+                        >
+                          <Typography variant="subtitle1" color="info.main" fontWeight="bold" gutterBottom>
+                            تعظيم الأرباح
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            اعتمادًا على بيانات الطلب المتوقعة، يمكن تعديل استراتيجيات التسعير للمنتجات التالية:
+                          </Typography>
+                          
+                          <Box component="ul" sx={{ pl: 2, mb: 0 }}>
+                            {itemDemandNetProfitSeries.slice(0, 3).map((item, index) => (
+                              <Typography component="li" variant="body2" key={index} sx={{ mb: 0.5 }}>
+                                {item.name} (مبيعات متوقعة: {item.value.toLocaleString()} ج)
+                              </Typography>
+                            ))}
+                          </Box>
+                        </Paper>
+                      </Grid>
                     </Grid>
-                  </Grid>
+                  </CardContent>
                 </Card>
               </Grid>
             )}
@@ -1300,55 +1945,69 @@ function DemandForecastComponent() {
 
   return (
     <Box>
-      {/* Sub Tabs for Category/Item level forecasts */}
-      <Card 
+      <Card
         elevation={0}
         sx={{
-          mb: 3, 
+          mb: 3,
           borderRadius: 3,
           bgcolor: alpha(theme.palette.primary.main, 0.05),
-          border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
         }}
       >
-        <Tabs
-          value={activeSubTab}
-          onChange={handleSubTabChange}
-          variant="fullWidth"
-          sx={{ 
-            mb: 1,
-            '& .MuiTab-root': {
-              py: 1.5,
-              fontSize: '1rem',
-              fontWeight: 'medium',
-            },
-            '& .MuiTabs-indicator': {
-              height: 3,
-              borderRadius: '3px 3px 0 0'
-            }
-          }}
-        >
-          <Tab 
-            label="توقعات الطلب حسب الفئة" 
-            icon={<CategoryRounded />} 
-            iconPosition="start" 
-          />
-          <Tab 
-            label="توقعات الطلب حسب المنتج" 
-            icon={<Inventory2Outlined />} 
-            iconPosition="start" 
-          />
-        </Tabs>
+        {/* Header with sub-tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+          <Tabs
+            value={activeSubTab}
+            onChange={handleSubTabChange}
+            variant="fullWidth"
+            textColor="primary"
+            indicatorColor="primary"
+            aria-label="demand forecast tabs"
+          >
+            <Tab
+              icon={<CategoryRounded sx={{ mr: 1 }} />}
+              iconPosition="start"
+              label="توقعات الأقسام"
+            />
+            <Tab
+              icon={<Inventory2Outlined sx={{ mr: 1 }} />}
+              iconPosition="start"
+              label="توقعات المنتجات"
+            />
+          </Tabs>
+        </Box>
 
-        {/* Filter Panel based on active sub-tab */}
-        {activeSubTab === 0 
+        {/* Filter panel based on active tab */}
+        {activeSubTab === 0
           ? renderCategoryFilterPanel()
           : renderItemFilterPanel()}
       </Card>
 
-      {/* Content based on active sub-tab */}
-      {activeSubTab === 0 
+      {/* Content based on active tab */}
+      {activeSubTab === 0
         ? renderCategoryForecastContent()
         : renderItemForecastContent()}
+
+      {/* AI forecast dialog */}
+      {renderForecastDialog()}
+
+      {/* Success snackbar */}
+      <Snackbar
+        open={showSuccessSnackbar}
+        autoHideDuration={6000}
+        onClose={() => setShowSuccessSnackbar(false)}
+        message="تم تشغيل نظام التنبؤ الذكي بنجاح!"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        action={
+          <Button
+            color="secondary"
+            size="small"
+            onClick={() => setShowSuccessSnackbar(false)}
+          >
+            إغلاق
+          </Button>
+        }
+      />
     </Box>
   );
 }

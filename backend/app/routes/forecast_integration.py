@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, Response
 import json
 import logging
 from datetime import datetime
-from app.models.demand_forecast.forecast_service import ForecastService, run_demand_forecast
+from app.models.demand_forecast.forecast_service import ForecastService
 from app.models.database import fetch_data, get_collection, init_db
 
 # Setup logging
@@ -25,9 +25,6 @@ def run_ai_forecast():
         JSON response with the status of the request
     """
     try:
-        # Option to run this in a background job in production
-        # For simplicity, we'll run it synchronously here
-        
         # Initialize DB connection
         init_db()
         
@@ -372,11 +369,10 @@ def get_seasonal_patterns():
             "success": False,
             "message": f"Error getting seasonal patterns: {str(e)}"
         }), 500
-
 @forecast_bp.route('/api/demand-forecasting/run-ai-forecast', methods=['POST'])
 def run_ai_forecast_api():
     """Alias for run-ai-forecast for API compatibility."""
-    return run_ai_forecast()
+    return ForecastService.run_ai_forecast()
 
 @forecast_bp.route('/api/demand-forecasting/get-forecast', methods=['GET'])
 def get_forecast_api():

@@ -968,3 +968,4 @@ def calculate_forecast_metrics(actual, forecast):
         'mape': mape,
         'r2': r2
     }
+

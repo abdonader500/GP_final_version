@@ -42,6 +42,7 @@ def get_demand_forecasting():
     except Exception as e:
         print(f"❌ Error fetching predicted demand data: {str(e)}")
         return jsonify({"error": f"Failed to fetch predicted demand data: {str(e)}"}), 500
+
 @visualization_bp.route('/item-specifications', methods=['GET'])
 def get_item_specifications():
     try:
@@ -88,6 +89,7 @@ def get_item_specifications():
             "message": f"Failed to fetch specifications: {str(e)}",
             "specifications": []
         }), 500
+
 @visualization_bp.route('/demand-forecasting-items', methods=['GET'])
 def get_demand_forecasting_items():
     try:
@@ -293,10 +295,6 @@ def get_seasonal_analysis():
         print(f"❌ Error fetching seasonal analysis data: {str(e)}")
         return jsonify({"error": f"Failed to fetch seasonal analysis data: {str(e)}"}), 500
 
-# Add this endpoint to your visualization.py file
-
-# Replace the existing category-performance endpoint in visualization.py with this updated version:
-
 @visualization_bp.route('/category-performance', methods=['GET'])
 def get_category_performance():
     try:
@@ -454,8 +452,6 @@ def get_category_performance():
             "message": str(e)
         }), 500
 
-# Add this endpoint to your visualization.py file
-
 @visualization_bp.route('/item-demand-forecasting', methods=['GET'])
 def get_item_demand_forecasting():
     try:
@@ -513,7 +509,6 @@ def get_item_demand_forecasting():
     except Exception as e:
         print(f"❌ Error fetching predicted item demand data: {str(e)}")
         return jsonify({"error": f"Failed to fetch predicted item demand data: {str(e)}"}), 500
-
 
 @visualization_bp.route('/daily-item-demand-forecasting', methods=['GET'])
 def get_daily_item_demand_forecasting():

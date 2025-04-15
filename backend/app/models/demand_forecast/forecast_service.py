@@ -790,107 +790,114 @@ class ForecastService:
         if processed_data is None:
             logger.warning("Failed to preprocess item-level data")
             return None
+            
+        # If no categories specified, extract all categories from data
         if categories is None:
             categories = processed_data['القسم'].unique().tolist()
             
-        # Initialize results dictionary
-        forecasts = {}
+        # Dictionary to store forecasts by category and specification
+        item_forecasts = {}
         
         # Process each category
         for category in categories:
-            forecasts[category] = {}
+            logger.info(f"Processing item-level forecasts for category: {category}")
             
-            # Filter data for this category
-            category_data = processed_data[processed_data['القسم'] == category]
-            
-            # If specifications not provided, extract all for this category
-            if specifications is None or category not in specifications:
-                category_specs = category_data['product_specification'].unique().tolist()
-            else:
+            # Get all specifications for this category
+            if specifications and category in specifications:
+                # Use provided specifications
                 category_specs = specifications[category]
+            else:
+                # Extract all specifications for this category from data
+                category_data = processed_data[processed_data['القسم'] == category]
+                category_specs = category_data['product_specification'].unique().tolist()
+                
+            # Skip if no specifications
+            if not category_specs:
+                logger.warning(f"No specifications found for category {category}")
+                continue
+                
+            # Store forecasts for this category
+            item_forecasts[category] = {}
+            
+            # Get the best model for this category
+            model_id = self.get_best_model(category)
+            if not model_id:
+                logger.warning(f"No model found for category {category}. Using general time series model.")
+                # Try to use a time series model
+                model_id = f"arima_all"
                 
             # Process each specification
             for spec in category_specs:
-                # Filter data for this specification
-                spec_data = category_data[category_data['product_specification'] == spec]
+                logger.info(f"Generating forecast for {category} - {spec}")
                 
-                if len(spec_data) < 12:  # Need at least a year of data
+                # Filter data for this category and specification
+                spec_data = processed_data[
+                    (processed_data['القسم'] == category) & 
+                    (processed_data['product_specification'] == spec)
+                ]
+                
+                # Skip if insufficient data
+                if len(spec_data) < 5:  # Need at least a few data points
                     logger.warning(f"Insufficient data for {category} - {spec}")
                     continue
                     
-                # Prepare time series data
-                ts_data = self.ts_models.prepare_data(spec_data, category=category, 
-                                                  product_specification=spec)
-                
-                if ts_data is None or len(ts_data) < 12:
-                    logger.warning(f"Failed to prepare time series data for {category} - {spec}")
+                try:
+                    # Prepare time series data
+                    ts_data = self.ts_models.prepare_data(
+                        spec_data, category=category, product_specification=spec)
+                        
+                    if ts_data is None or len(ts_data) < 5:
+                        logger.warning(f"Failed to prepare time series data for {category} - {spec}")
+                        continue
+                        
+                    # Get the mean ratio of this specification to the category total
+                    category_data = processed_data[processed_data['القسم'] == category]
+                    category_monthly = category_data.groupby(['year', 'month'])['total_quantity'].sum().reset_index()
+                    spec_monthly = spec_data.groupby(['year', 'month'])['total_quantity'].sum().reset_index()
+                    
+                    # Merge to calculate ratios
+                    merged = pd.merge(
+                        spec_monthly, 
+                        category_monthly, 
+                        on=['year', 'month'], 
+                        suffixes=('_spec', '_category')
+                    )
+                    
+                    # Calculate ratio
+                    merged['ratio'] = merged['total_quantity_spec'] / merged['total_quantity_category']
+                    mean_ratio = merged['ratio'].mean()
+                    
+                    if np.isnan(mean_ratio) or mean_ratio == 0:
+                        mean_ratio = 0.1  # Default to 10% if ratio is invalid
+                        
+                    # Generate category forecast
+                    category_forecast = self.generate_forecast(
+                        model_id, steps=steps, category=category, freq=freq)
+                        
+                    if category_forecast is None:
+                        logger.warning(f"Failed to generate category forecast for {category}")
+                        continue
+                        
+                    # Apply ratio to get specification forecast
+                    spec_forecast = category_forecast * mean_ratio
+                    
+                    # Ensure non-negative values
+                    spec_forecast = spec_forecast.clip(lower=0)
+                    
+                    # Store forecast
+                    item_forecasts[category][spec] = spec_forecast
+                    logger.info(f"Generated {len(spec_forecast)} forecasts for {category} - {spec}")
+                    
+                except Exception as e:
+                    logger.error(f"Error generating forecast for {category} - {spec}: {e}")
                     continue
-                    
-                # Train simple model for this specification
-                train_data, test_data = self.ts_models.train_test_split(ts_data, test_size=0.2)
-                
-                # Use exponential smoothing for item-level forecasts (faster than ARIMA/Prophet)
-                model = self.ts_models.train_exponential_smoothing(
-                    train_data, category=category, seasonal='add')
-                    
-                if model:
-                    model_id = f"exp_smoothing_{category}_{spec}"
-                    
-                    # Generate forecast
-                    forecast = self.ts_models.generate_future_forecast(
-                        model_id, future_periods=steps, freq=freq)
-                        
-                    if forecast is not None:
-                        forecasts[category][spec] = forecast
-                        
-        return forecasts
-    def save_item_forecasts_to_mongodb(self, forecasts, collection_name="predicted_item_demand_2025"):
-        """
-        Save item-level forecasts to MongoDB.
         
-        Args:
-            forecasts (dict): Dictionary with forecasts by category and specification
-            collection_name (str): Name of the collection to save to
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        logger.info(f"Saving item-level forecasts to MongoDB collection: {collection_name}")
-        
-        # Prepare records for MongoDB
-        records = []
-        for category, specs in forecasts.items():
-            for spec, forecast in specs.items():
-                for date, value in forecast.items():
-                    # Extract year and month from date
-                    year = date.year
-                    month = date.month
-                    
-                    record = {
-                        "القسم": category,
-                        "product_specification": spec,
-                        "year": year,
-                        "month": month,
-                        "predicted_quantity": float(value),
-                        "predicted_money_sold": float(value * 100)  # Placeholder, should use actual price data
-                    }
-                    
-                    records.append(record)
-                    
-        # Insert into MongoDB
-        try:
-            inserted_count = insert_data(collection_name, records)
-            logger.info(f"Inserted {inserted_count} item-level forecast records into {collection_name}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error saving item-level forecasts to MongoDB: {e}")
-            return False
+        return item_forecasts
     
-    def run_forecasting_workflow(self, train_models=True, generate_forecasts=True, 
-                              save_to_mongodb=True, forecast_horizon=12):
+    def run_ai_forecast(self, train_models=True, generate_forecasts=True, 
+                      save_to_mongodb=True, forecast_horizon=12):
         """
-        Run the complete forecasting workflow.
+        Run the full AI forecasting workflow.
         
         Args:
             train_models (bool): Whether to train new models
@@ -899,100 +906,266 @@ class ForecastService:
             forecast_horizon (int): Number of periods to forecast
             
         Returns:
-            dict: Workflow results
+            dict: Dictionary with results
         """
-        logger.info("Starting forecasting workflow")
-        
         results = {
-            'training': None,
-            'category_forecasts': None,
-            'item_forecasts': None
+            'success': True,
+            'message': 'AI forecast completed successfully',
+            'steps': {}
         }
         
-        # Step 1: Train models if requested
-        if train_models:
-            logger.info("Step 1: Training models")
+        # Step 1: Fetch and prepare data
+        try:
+            logger.info("Step 1: Fetching and preparing data")
             
-            # Fetch training data
-            training_data = self.fetch_training_data()
+            # Fetch data
+            df = self.fetch_training_data()
             
-            if training_data is None:
-                logger.error("Failed to fetch training data")
+            if df is None:
+                results['success'] = False
+                results['message'] = 'Failed to fetch training data'
                 return results
                 
             # Create features
-            feature_data = self.create_features(training_data)
+            df_with_features = self.create_features(df)
             
-            # Train models for all categories
-            training_results = self.train_models_for_all_categories(
-                df=feature_data,
-                forecast_horizon=forecast_horizon
-            )
+            if df_with_features is None:
+                results['success'] = False
+                results['message'] = 'Failed to create features'
+                return results
+                
+            results['steps']['data_preparation'] = {
+                'success': True,
+                'records': len(df_with_features),
+                'categories': len(df_with_features['القسم'].unique())
+            }
+            logger.info("Step 1 completed successfully")
             
-            results['training'] = training_results
+        except Exception as e:
+            logger.error(f"Error in Step 1: {e}")
+            results['success'] = False
+            results['message'] = f'Error in data preparation: {e}'
+            results['steps']['data_preparation'] = {
+                'success': False,
+                'error': str(e)
+            }
+            return results
+            
+        # Step 2: Train models
+        if train_models:
+            try:
+                logger.info("Step 2: Training models")
+                
+                # Get all categories
+                categories = df_with_features['القسم'].unique().tolist()
+                
+                # Train models for all categories
+                training_results = self.train_models_for_all_categories(
+                    df=df_with_features,
+                    categories=categories,
+                    forecast_horizon=forecast_horizon
+                )
+                
+                if training_results is None:
+                    results['success'] = False
+                    results['message'] = 'Failed to train models'
+                    return results
+                    
+                results['steps']['model_training'] = {
+                    'success': True,
+                    'categories_trained': len(training_results),
+                    'models_trained': sum([
+                        len(result['timeseries_models']) + len(result['ensemble_models'])
+                        for result in training_results.values()
+                    ])
+                }
+                logger.info("Step 2 completed successfully")
+                
+            except Exception as e:
+                logger.error(f"Error in Step 2: {e}")
+                results['success'] = False
+                results['message'] = f'Error in model training: {e}'
+                results['steps']['model_training'] = {
+                    'success': False,
+                    'error': str(e)
+                }
+                return results
+        else:
+            results['steps']['model_training'] = {
+                'success': True,
+                'message': 'Model training skipped'
+            }
         
-        # Step 2: Generate forecasts if requested
+        # Step 3: Generate forecasts
         if generate_forecasts:
-            logger.info("Step 2: Generating forecasts")
+            try:
+                logger.info("Step 3: Generating forecasts")
+                
+                # Generate category-level forecasts
+                category_forecasts = self.generate_forecast_for_all_categories(
+                    steps=forecast_horizon, freq='M', use_best_model=True)
+                    
+                if category_forecasts is None or len(category_forecasts) == 0:
+                    results['success'] = False
+                    results['message'] = 'Failed to generate category-level forecasts'
+                    return results
+                    
+                # Generate item-level forecasts
+                item_forecasts = self.generate_item_level_forecasts(
+                    steps=forecast_horizon, freq='M')
+                    
+                results['steps']['forecast_generation'] = {
+                    'success': True,
+                    'category_forecasts': len(category_forecasts),
+                    'item_forecasts': len(item_forecasts) if item_forecasts else 0
+                }
+                logger.info("Step 3 completed successfully")
+                
+            except Exception as e:
+                logger.error(f"Error in Step 3: {e}")
+                results['success'] = False
+                results['message'] = f'Error in forecast generation: {e}'
+                results['steps']['forecast_generation'] = {
+                    'success': False,
+                    'error': str(e)
+                }
+                return results
+        else:
+            results['steps']['forecast_generation'] = {
+                'success': True,
+                'message': 'Forecast generation skipped'
+            }
             
-            # Generate category-level forecasts
-            category_forecasts = self.generate_forecast_for_all_categories(
-                steps=forecast_horizon,
-                freq='M',
-                use_best_model=True
-            )
-            
-            results['category_forecasts'] = category_forecasts
-            
-            # Generate item-level forecasts
-            item_forecasts = self.generate_item_level_forecasts(
-                steps=forecast_horizon,
-                freq='M'
-            )
-            
-            results['item_forecasts'] = item_forecasts
-            
-            # Step 3: Save forecasts to MongoDB if requested
-            if save_to_mongodb:
-                logger.info("Step 3: Saving forecasts to MongoDB")
+        # Step 4: Save forecasts to MongoDB
+        if save_to_mongodb and generate_forecasts:
+            try:
+                logger.info("Step 4: Saving forecasts to MongoDB")
                 
                 # Save category-level forecasts
-                if category_forecasts:
-                    self.save_forecasts_to_mongodb(
-                        category_forecasts,
-                        collection_name="predicted_demand_2025"
-                    )
+                category_saved = self.save_forecasts_to_mongodb(
+                    category_forecasts, collection_name="predicted_demand_2025")
                     
-                # Save item-level forecasts
+                # Save item-level forecasts if available
+                item_saved = False
                 if item_forecasts:
-                    self.save_item_forecasts_to_mongodb(
-                        item_forecasts,
-                        collection_name="predicted_item_demand_2025"
-                    )
-                    
-        logger.info("Forecasting workflow completed")
+                    item_saved = self.save_item_forecasts_to_mongodb(
+                        item_forecasts, collection_name="predicted_item_demand_2025")
+                        
+                results['steps']['save_to_mongodb'] = {
+                    'success': category_saved,
+                    'category_records_saved': len(category_forecasts) * forecast_horizon,
+                    'item_records_saved': sum([len(specs) for specs in item_forecasts.values()]) * forecast_horizon if item_forecasts else 0
+                }
+                logger.info("Step 4 completed successfully")
+                
+            except Exception as e:
+                logger.error(f"Error in Step 4: {e}")
+                results['success'] = False
+                results['message'] = f'Error in saving forecasts: {e}'
+                results['steps']['save_to_mongodb'] = {
+                    'success': False,
+                    'error': str(e)
+                }
+                return results
+        else:
+            results['steps']['save_to_mongodb'] = {
+                'success': True,
+                'message': 'Saving to MongoDB skipped'
+            }
+            
+        logger.info("AI forecast completed successfully")
         return results
-
-    # Function to run the forecasting workflow
-    def run_demand_forecast():
-        """
-        Run the demand forecasting workflow.
         
+    def get_model_metrics(self, category=None, model_id=None):
+        """
+        Get metrics for trained models.
+        
+        Args:
+            category (str): Filter by category
+            model_id (str): Get metrics for a specific model
+            
         Returns:
-            dict: Workflow results
+            dict: Dictionary with model metrics
         """
-        # Initialize forecast service
-        forecast_service = ForecastService()
+        # Ensure model registry is loaded
+        if not self.model_registry:
+            self.load_model_registry()
+            
+        # If model_id is provided, get metrics for that model
+        if model_id:
+            if model_id in self.model_registry:
+                model_info = self.model_registry[model_id]
+                return {
+                    model_id: {
+                        'model_type': model_info['model_type'],
+                        'category': model_info['category'],
+                        'metrics': model_info['metrics']
+                    }
+                }
+            else:
+                logger.warning(f"Model {model_id} not found in registry")
+                return {}
+                
+        # Filter by category if provided
+        if category:
+            category_models = self.get_registered_models(category=category)
+            
+            if not category_models:
+                logger.warning(f"No models found for category {category}")
+                return {}
+                
+            return {
+                model_id: {
+                    'model_type': info['model_type'],
+                    'category': info['category'],
+                    'metrics': info['metrics']
+                }
+                for model_id, info in category_models.items()
+                if info['metrics']
+            }
+            
+        # Return metrics for all models
+        return {
+            model_id: {
+                'model_type': info['model_type'],
+                'category': info['category'],
+                'metrics': info['metrics']
+            }
+            for model_id, info in self.model_registry.items()
+            if info['metrics']
+        }
         
-        # Run forecasting workflow
-        results = forecast_service.run_forecasting_workflow(
-            train_models=True,
-            generate_forecasts=True,
-            save_to_mongodb=True,
-            forecast_horizon=12
-        )
+    def get_seasonal_patterns(self, categories=None):
+        """
+        Get seasonal patterns from historical data.
         
-        return results
-
-    if __name__ == "__main__":
-        run_demand_forecast()
+        Args:
+            categories (list): Filter by categories
+            
+        Returns:
+            list: List of seasonal patterns by month
+        """
+        # Fetch historical data
+        df = self.fetch_training_data(categories=categories)
+        
+        if df is None:
+            logger.warning("No data found for seasonal analysis")
+            return []
+            
+        # Group by month to get seasonal patterns
+        monthly_data = df.groupby('month')['total_quantity'].mean().reset_index()
+        
+        # Calculate relative strength (percentage of annual average)
+        annual_avg = monthly_data['total_quantity'].mean()
+        monthly_data['relative_strength'] = (monthly_data['total_quantity'] / annual_avg) * 100
+        
+        # Create seasonal patterns
+        seasonal_patterns = []
+        for _, row in monthly_data.iterrows():
+            seasonal_patterns.append({
+                'month': int(row['month']),
+                'average_quantity': float(row['total_quantity']),
+                'relative_strength': float(row['relative_strength'])
+            })
+            
+        return seasonal_patterns

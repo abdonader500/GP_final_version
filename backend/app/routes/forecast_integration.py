@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, Response
 import json
 import logging
+import os
 from datetime import datetime
 from app.models.demand_forecast.forecast_service import ForecastService
 from app.models.database import fetch_data, get_collection, init_db
@@ -11,6 +12,9 @@ logger = logging.getLogger('forecast_integration')
 
 # Create Flask blueprint
 forecast_bp = Blueprint('demand_forecasting', __name__)
+
+# Create models directory if it doesn't exist
+os.makedirs('models', exist_ok=True)
 
 # Initialize the forecast service
 forecast_service = ForecastService()
@@ -40,8 +44,8 @@ def run_ai_forecast():
         # Log request
         logger.info(f"Received request to run AI forecast: {data}")
         
-        # Run the forecasting workflow (in background in production)
-        results = forecast_service.run_forecasting_workflow(
+        # Run the forecasting workflow
+        results = forecast_service.run_ai_forecast(
             train_models=train_models,
             generate_forecasts=generate_forecasts,
             save_to_mongodb=save_to_mongodb,
@@ -52,14 +56,18 @@ def run_ai_forecast():
         return jsonify({
             "success": True,
             "message": "Demand forecasting process completed successfully",
+            "data": results.get('steps', {}) if results else {},
             "completed_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         })
         
     except Exception as e:
         logger.error(f"Error running AI forecast: {str(e)}")
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Error details: {error_details}")
         return jsonify({
             "success": False,
-            "message": f"Error running AI forecast: {str(e)}"
+            "message": f"Failed to run AI forecast: {str(e)}"
         }), 500
 
 @forecast_bp.route('/get-forecast', methods=['GET'])
@@ -208,11 +216,20 @@ def get_model_metrics():
         )
         
         if not models:
-            return jsonify({
-                "success": False,
-                "message": "No models found for the specified parameters",
-                "data": []
-            }), 404
+            # If no models found, try to get metrics directly
+            metrics = forecast_service.get_model_metrics(category=category)
+            if metrics:
+                return jsonify({
+                    "success": True,
+                    "message": "Model metrics retrieved successfully",
+                    "data": metrics
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "No models found for the specified parameters",
+                    "data": []
+                })
             
         # Return data
         return jsonify({
@@ -223,6 +240,9 @@ def get_model_metrics():
         
     except Exception as e:
         logger.error(f"Error getting model metrics: {str(e)}")
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Error details: {error_details}")
         return jsonify({
             "success": False,
             "message": f"Error getting model metrics: {str(e)}"
@@ -317,69 +337,65 @@ def get_seasonal_patterns():
         # Get query parameters
         category = request.args.get('category')
         
-        # Build the query
-        query = {}
-        if category:
-            query["القسم"] = category
-            
-        # Fetch data from category_monthly_demand
-        monthly_data = fetch_data("category_monthly_demand", query=query, projection={"_id": 0})
+        # Use the forecast service to get seasonal patterns
+        patterns = forecast_service.get_seasonal_patterns(
+            categories=[category] if category else None
+        )
         
-        if not monthly_data:
-            return jsonify({
-                "success": False,
-                "message": "No monthly data found for the specified parameters",
-                "data": []
-            }), 404
-            
-        # Process data to extract seasonal patterns
-        # Group by month across all years
-        monthly_totals = {}
-        for record in monthly_data:
-            month = record.get('month')
-            quantity = record.get('total_quantity', 0)
-            
-            if month not in monthly_totals:
-                monthly_totals[month] = []
+        if not patterns:
+            # Fallback - build seasonal patterns manually
+            # Build the query
+            query = {}
+            if category:
+                query["القسم"] = category
                 
-            monthly_totals[month].append(quantity)
+            # Fetch data from category_monthly_demand
+            monthly_data = fetch_data("category_monthly_demand", query=query, projection={"_id": 0})
             
-        # Calculate average for each month
-        seasonal_patterns = []
-        for month, quantities in monthly_totals.items():
-            avg_quantity = sum(quantities) / len(quantities)
-            seasonal_patterns.append({
-                "month": month,
-                "average_quantity": avg_quantity
-            })
+            if not monthly_data:
+                return jsonify({
+                    "success": False,
+                    "message": "No monthly data found for the specified parameters",
+                    "data": []
+                }), 404
+                
+            # Process data to extract seasonal patterns
+            # Group by month across all years
+            monthly_totals = {}
+            for record in monthly_data:
+                month = record.get('month')
+                quantity = record.get('total_quantity', 0)
+                
+                if month not in monthly_totals:
+                    monthly_totals[month] = []
+                    
+                monthly_totals[month].append(quantity)
+                
+            # Calculate average for each month
+            patterns = []
+            for month, quantities in monthly_totals.items():
+                avg_quantity = sum(quantities) / len(quantities)
+                patterns.append({
+                    "month": month,
+                    "average_quantity": avg_quantity
+                })
             
-        # Sort by month
-        seasonal_patterns.sort(key=lambda x: x['month'])
-        
+            # Sort by month
+            patterns.sort(key=lambda x: x['month'])
+            
         # Return data
         return jsonify({
             "success": True,
             "message": "Seasonal patterns retrieved successfully",
-            "data": seasonal_patterns
+            "data": patterns
         })
         
     except Exception as e:
         logger.error(f"Error getting seasonal patterns: {str(e)}")
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Error details: {error_details}")
         return jsonify({
             "success": False,
             "message": f"Error getting seasonal patterns: {str(e)}"
         }), 500
-@forecast_bp.route('/api/demand-forecasting/run-ai-forecast', methods=['POST'])
-def run_ai_forecast_api():
-    """Alias for run-ai-forecast for API compatibility."""
-    return ForecastService.run_ai_forecast()
-
-@forecast_bp.route('/api/demand-forecasting/get-forecast', methods=['GET'])
-def get_forecast_api():
-    """Alias for get-forecast for API compatibility."""
-    return get_forecast()
-
-@forecast_bp.route('/api/demand-forecasting/get-item-forecast', methods=['GET'])
-def get_item_forecast_api():
-    """Alias for get-item-forecast for API compatibility."""
-    return get_item_forecast()

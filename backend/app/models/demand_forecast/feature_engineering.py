@@ -546,41 +546,44 @@ class FeatureEngineer:
         }
         
         # Convert date to period
-        result_df['year_month'] = pd.to_datetime(result_df[date_col]).dt.to_period('M').astype(str)
-        
+        result_df['year_month'] = pd.to_datetime(result_df[date_col]).dt.strftime('%Y-%m')         
         # Add inflation data
         inflation_series = pd.Series(inflation_data)
-        inflation_series.index = pd.to_datetime(inflation_series.index).to_period('M').astype(str)
+        inflation_series.index = pd.to_datetime(inflation_series.index).strftime('%Y-%m')
         
         # Use forward fill for any missing months
-        all_months = pd.date_range(min(pd.to_datetime(inflation_series.index)), 
-                                  max(pd.to_datetime(inflation_series.index)), 
-                                  freq='M')
-        all_months = all_months.to_period('M').astype(str)
+        all_months = pd.date_range(
+            min(pd.to_datetime(list(inflation_data.keys()))), 
+            max(pd.to_datetime(list(inflation_data.keys()))), 
+            freq='ME'  # Use 'ME' instead of deprecated 'M'
+        )
+        all_months_str = all_months.strftime('%Y-%m')
         
-        complete_inflation = pd.Series(index=all_months, dtype=float)
+        complete_inflation = pd.Series(index=all_months_str, dtype=float)
         for month in inflation_series.index:
             complete_inflation[month] = inflation_series[month]
         
-        complete_inflation = complete_inflation.fillna(method='ffill')
+        complete_inflation = complete_inflation.ffill()
         
         # Map to dataframe
         result_df['inflation_rate'] = result_df['year_month'].map(complete_inflation)
         
         # Add consumer confidence data (quarterly, need to fill monthly)
         confidence_series = pd.Series(confidence_data)
-        confidence_series.index = pd.to_datetime(confidence_series.index).to_period('M').astype(str)
+        confidence_series.index = pd.to_datetime(confidence_series.index).strftime('%Y-%m')
         
-        all_quarters = pd.date_range(min(pd.to_datetime(confidence_series.index)), 
-                                     max(pd.to_datetime(confidence_series.index)), 
-                                     freq='Q')
-        all_quarters = all_quarters.to_period('M').astype(str)
+        all_quarters = pd.date_range(
+            min(pd.to_datetime(list(confidence_data.keys()))), 
+            max(pd.to_datetime(list(confidence_data.keys()))), 
+            freq='QE'  # Use 'QE' instead of deprecated 'Q'
+        )
+        all_quarters_str = all_quarters.strftime('%Y-%m')
         
-        complete_confidence = pd.Series(index=all_quarters, dtype=float)
+        complete_confidence = pd.Series(index=all_quarters_str, dtype=float)
         for quarter in confidence_series.index:
             complete_confidence[quarter] = confidence_series[quarter]
             
-        complete_confidence = complete_confidence.fillna(method='ffill')
+        complete_confidence = complete_confidence.ffill()
         
         # Expand quarterly data to monthly
         monthly_confidence = {}

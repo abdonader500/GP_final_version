@@ -43,6 +43,7 @@ def get_demand_forecasting():
         print(f"❌ Error fetching predicted demand data: {str(e)}")
         return jsonify({"error": f"Failed to fetch predicted demand data: {str(e)}"}), 500
 
+<<<<<<< HEAD
 @visualization_bp.route('/item-specifications', methods=['GET'])
 def get_item_specifications():
     try:
@@ -90,6 +91,8 @@ def get_item_specifications():
             "specifications": []
         }), 500
 
+=======
+>>>>>>> parent of 64b3f98 (start demand model)
 @visualization_bp.route('/demand-forecasting-items', methods=['GET'])
 def get_demand_forecasting_items():
     try:

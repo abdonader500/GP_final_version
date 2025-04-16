@@ -591,7 +591,7 @@ class FeatureEngineer:
             quarter_date = pd.to_datetime(quarter)
             for i in range(3):
                 month_date = quarter_date + pd.DateOffset(months=i)
-                month_key = month_date.to_period('M').astype(str)
+                month_key = month_date.to_period('M').strftime('%Y-%m')
                 monthly_confidence[month_key] = complete_confidence[quarter]
                 
         # Map to dataframe

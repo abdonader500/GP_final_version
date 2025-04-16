@@ -2,6 +2,11 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Paper,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
   Typography,
   Container,
   CircularProgress,
@@ -13,12 +18,15 @@ import {
   Select,
   MenuItem,
   Checkbox,
-  ListItemText,
+  ListItemButton,
   Chip,
   Grid,
   Card,
   CardContent,
+  CardHeader,
+  Divider,
   alpha,
+  IconButton,
   useTheme,
   Tabs,
   Tab,
@@ -28,24 +36,39 @@ import {
   FormControlLabel,
 } from "@mui/material";
 import {
+  ExpandLess,
+  ExpandMore,
   BarChart,
   TrendingUp,
   InsertChart,
+  Timeline,
+  FilterAlt,
+  Refresh,
   DateRange,
   ShowChart,
   QueryStats,
+  PieChart,
+  MonetizationOn,
+  Filter,
 } from "@mui/icons-material";
 import Chart from "react-apexcharts";
 import axios from "axios";
 import SeasonalAnalysisDashboard from "../components/SeasonalAnalysisDashboard";
 import CategoryPerformanceDashboard from "../components/CategoryPerformanceDashboard";
-import DemandForecastComponent from "../components/DemandForecastComponent";
 
 function Visualizations() {
   const theme = useTheme();
 
   // Tab state
   const [activeTab, setActiveTab] = useState(0);
+
+  // State for demand data
+  const [demandData, setDemandData] = useState({});
+  const [isLoadingDemand, setIsLoadingDemand] = useState(true);
+  const [errorDemand, setErrorDemand] = useState(null);
+  const [demandMessage, setDemandMessage] = useState(null);
+  const [selectedDemandCategories, setSelectedDemandCategories] = useState([]);
+  const [allCategoriesSelected, setAllCategoriesSelected] = useState(true);
 
   // State for monthly demand data and form
   const [monthlyDemandData, setMonthlyDemandData] = useState([]);
@@ -62,16 +85,42 @@ function Visualizations() {
   const [showQuantity, setShowQuantity] = useState(true);
   const [showNetProfit, setShowNetProfit] = useState(true);
 
+  // State for filter drawer
+  const [filterOpen, setFilterOpen] = useState(false);
+
   // Handle tab change
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
+  // Fetch demand data on component mount
+  useEffect(() => {
+    const fetchDemandData = async () => {
+      setIsLoadingDemand(true);
+      setErrorDemand(null);
+      setDemandMessage(null);
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/visualization/demand-forecasting"
+        );
+        setDemandData(response.data.demand_data || {});
+        setDemandMessage(response.data.message || null);
+        const cats = Object.keys(response.data.demand_data || {});
+        setCategories(cats);
+        setSelectedDemandCategories(cats);
+        setSelectedMonthlyDemandCategories(cats.length > 0 ? [cats[0]] : []);
+      } catch (err) {
+        setErrorDemand("فشل في جلب بيانات الطلب. يرجى المحاولة مرة أخرى.");
+        console.error("Error fetching demand data:", err);
+      } finally {
+        setIsLoadingDemand(false);
+      }
+    };
+    fetchDemandData();
+  }, []);
+
   // Set current month for date pickers
   useEffect(() => {
-    // Fetch categories to be used in monthly demand
-    fetchCategories();
-    
     const today = new Date();
     const month = String(today.getMonth() + 1).padStart(2, "0");
     const year = today.getFullYear();
@@ -90,20 +139,6 @@ function Visualizations() {
 
     setStartMonthYear(`${startYear}-${String(startMonth).padStart(2, "0")}`);
   }, []);
-
-  // Fetch categories
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get(
-        "http://localhost:5000/api/visualization/demand-forecasting"
-      );
-      const cats = Object.keys(response.data.demand_data || {});
-      setCategories(cats);
-      setSelectedMonthlyDemandCategories(cats.length > 0 ? [cats[0]] : []);
-    } catch (err) {
-      console.error("Error fetching categories:", err);
-    }
-  };
 
   // Fetch monthly demand data when form is submitted
   const handleMonthlyDemandSubmit = async (e) => {
@@ -155,9 +190,83 @@ function Visualizations() {
     }
   };
 
+  // Handle demand category selection
+  const handleDemandCategoryChange = (event) => {
+    const value = event.target.value;
+    if (value[value.length - 1] === "all") {
+      setSelectedDemandCategories(
+        categories.length === selectedDemandCategories.length ? [] : categories
+      );
+      setAllCategoriesSelected(!allCategoriesSelected);
+      return;
+    }
+    setSelectedDemandCategories(value);
+    setAllCategoriesSelected(false);
+  };
+
   // Handle monthly demand category selection
   const handleMonthlyDemandCategoryChange = (event) => {
     setSelectedMonthlyDemandCategories(event.target.value);
+  };
+
+  // Process demand data for quantity chart
+  const processDemandQuantityData = () => {
+    if (
+      !demandData ||
+      Object.keys(demandData).length === 0 ||
+      !selectedDemandCategories.length
+    ) {
+      return [];
+    }
+
+    const series = selectedDemandCategories.map((category) => {
+      const quantityData = Array.from({ length: 12 }, (_, i) => {
+        const month = String(i + 1);
+        return {
+          x: month,
+          y: Math.round(demandData[category]?.[month]?.quantity || 0),
+        };
+      });
+
+      return {
+        name: `${category} - الكمية`,
+        type: "line",
+        data: quantityData,
+      };
+    });
+
+    console.log("Processed Demand Quantity Series:", series);
+    return series;
+  };
+
+  // Process demand data for net profit chart
+  const processDemandNetProfitData = () => {
+    if (
+      !demandData ||
+      Object.keys(demandData).length === 0 ||
+      !selectedDemandCategories.length
+    ) {
+      return [];
+    }
+
+    const series = selectedDemandCategories.map((category) => {
+      const moneySoldData = Array.from({ length: 12 }, (_, i) => {
+        const month = String(i + 1);
+        return {
+          x: month,
+          y: Math.round(demandData[category]?.[month]?.money_sold || 0),
+        };
+      });
+
+      return {
+        name: `${category} - الصافي`,
+        type: "area",
+        data: moneySoldData,
+      };
+    });
+
+    console.log("Processed Demand Net Profit Series:", series);
+    return series;
   };
 
   // Process monthly demand data for quantity chart
@@ -214,6 +323,8 @@ function Visualizations() {
     return series;
   };
 
+  const demandQuantitySeries = processDemandQuantityData();
+  const demandNetProfitSeries = processDemandNetProfitData();
   const monthlyDemandQuantitySeries = processMonthlyDemandQuantityData();
   const monthlyDemandNetProfitSeries = processMonthlyDemandNetProfitData();
 
@@ -264,7 +375,8 @@ function Visualizations() {
       fontFamily: theme.typography.fontFamily,
     },
     title: {
-      text: "الكمية الشهرية المباعة",
+      text:
+        activeTab === 0 ? "توقعات الطلب حسب الشهر" : "الكمية الشهرية المباعة",
       align: "center",
       style: {
         fontSize: "18px",
@@ -274,15 +386,18 @@ function Visualizations() {
       },
     },
     xaxis: {
-      type: "category",
-      categories: [
-        ...new Set(
-          monthlyDemandData.map(
-            (item) =>
-              `${item.year}-${String(item.month).padStart(2, "0")}`
-          )
-        ),
-      ],
+      type: activeTab === 0 ? "category" : "category",
+      categories:
+        activeTab === 0
+          ? Array.from({ length: 12 }, (_, i) => String(i + 1))
+          : [
+              ...new Set(
+                monthlyDemandData.map(
+                  (item) =>
+                    `${item.year}-${String(item.month).padStart(2, "0")}`
+                )
+              ),
+            ],
       labels: {
         style: {
           colors: theme.palette.text.secondary,
@@ -290,7 +405,7 @@ function Visualizations() {
         },
       },
       title: {
-        text: "الشهر/السنة",
+        text: activeTab === 0 ? "الشهر" : "الشهر/السنة",
         style: {
           color: theme.palette.text.secondary,
           fontFamily: theme.typography.fontFamily,
@@ -397,7 +512,8 @@ function Visualizations() {
       fontFamily: theme.typography.fontFamily,
     },
     title: {
-      text: "الصافي الشهري المباع",
+      text:
+        activeTab === 0 ? "توقعات الصافي حسب الشهر" : "الصافي الشهري المباع",
       align: "center",
       style: {
         fontSize: "18px",
@@ -407,15 +523,18 @@ function Visualizations() {
       },
     },
     xaxis: {
-      type: "category",
-      categories: [
-        ...new Set(
-          monthlyDemandData.map(
-            (item) =>
-              `${item.year}-${String(item.month).padStart(2, "0")}`
-          )
-        ),
-      ],
+      type: activeTab === 0 ? "category" : "category",
+      categories:
+        activeTab === 0
+          ? Array.from({ length: 12 }, (_, i) => String(i + 1))
+          : [
+              ...new Set(
+                monthlyDemandData.map(
+                  (item) =>
+                    `${item.year}-${String(item.month).padStart(2, "0")}`
+                )
+              ),
+            ],
       labels: {
         style: {
           colors: theme.palette.text.secondary,
@@ -423,7 +542,7 @@ function Visualizations() {
         },
       },
       title: {
-        text: "الشهر/السنة",
+        text: activeTab === 0 ? "الشهر" : "الشهر/السنة",
         style: {
           color: theme.palette.text.secondary,
           fontFamily: theme.typography.fontFamily,
@@ -514,6 +633,98 @@ function Visualizations() {
       },
     },
   };
+
+  // Render functions for content visibility
+  const renderForecastContent = () => (
+    <Box>
+      {isLoadingDemand && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {errorDemand && (
+        <Alert
+          severity="error"
+          sx={{ mb: 4, borderRadius: 2 }}
+          variant="filled"
+        >
+          {errorDemand}
+        </Alert>
+      )}
+
+      {demandMessage &&
+        !isLoadingDemand &&
+        Object.keys(demandData).length === 0 && (
+          <Alert
+            severity="warning"
+            sx={{ mb: 4, borderRadius: 2 }}
+            variant="filled"
+          >
+            {demandMessage}
+          </Alert>
+        )}
+
+      {!isLoadingDemand &&
+        !errorDemand &&
+        Object.keys(demandData).length > 0 && (
+          <Grid container spacing={3}>
+            {showQuantity && demandQuantitySeries.length > 0 && (
+              <Grid item xs={12}>
+                <Grid item xs={6} md={2}>
+                  <Stack direction="row" spacing={1}></Stack>
+                </Grid>
+
+                <Grid item xs={6} md={2}></Grid>
+                <Card
+                  elevation={3}
+                  sx={{
+                    borderRadius: 3,
+                    overflow: "hidden",
+                    maxWidth: "1200px",
+                    mx: "auto",
+                  }}
+                >
+                  <CardContent sx={{ p: 2 }}>
+                    <Chart
+                      options={quantityChartOptions}
+                      series={demandQuantitySeries}
+                      type="line"
+                      height={400}
+                      width="100%"
+                    />
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {showNetProfit && demandNetProfitSeries.length > 0 && (
+              <Grid item xs={12}>
+                <Card
+                  elevation={3}
+                  sx={{
+                    borderRadius: 3,
+                    overflow: "hidden",
+                    maxWidth: "1200px",
+                    mx: "auto",
+                  }}
+                >
+                  <CardContent sx={{ p: 2 }}>
+                    <Chart
+                      options={netProfitChartOptions}
+                      series={demandNetProfitSeries}
+                      type="area"
+                      height={400}
+                      width="100%"
+                    />
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+          </Grid>
+        )}
+    </Box>
+  );
 
   const renderHistoricalContent = () => (
     <Box>
@@ -621,152 +832,270 @@ function Visualizations() {
     </Box>
   );
 
-  // Render filter panel for historical tab
-  const renderHistoricalFilterPanel = () => {
-    return (
-      <Card
-        elevation={0}
-        component="form"
-        onSubmit={handleMonthlyDemandSubmit}
-        sx={{
-          mb: 3,
-          borderRadius: 3,
-          bgcolor: alpha(theme.palette.primary.main, 0.05),
-          border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-        }}
-      >
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="monthly-category-label">
-                  اختر الأقسام
-                </InputLabel>
-                <Select
-                  labelId="monthly-category-label"
-                  multiple
-                  value={selectedMonthlyDemandCategories}
-                  onChange={handleMonthlyDemandCategoryChange}
-                  input={<OutlinedInput label="اختر الأقسام" />}
-                  renderValue={(selected) => (
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                      {selected.map((value) => (
-                        <Chip
-                          key={value}
-                          label={value}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                        />
-                      ))}
-                    </Box>
-                  )}
-                >
-                  {categories.map((category) => (
-                    <MenuItem key={category} value={category}>
-                      <Checkbox
-                        checked={
-                          selectedMonthlyDemandCategories.indexOf(category) >
-                          -1
-                        }
-                      />
-                      <ListItemText primary={category} />
+  // Render filter panel for each tab
+  const renderFilterPanel = () => {
+    if (activeTab === 0) {
+      // Forecast tab filters
+      return (
+        <Card
+          elevation={0}
+          sx={{
+            mb: 3,
+            borderRadius: 3,
+            bgcolor: alpha(theme.palette.primary.main, 0.05),
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+          }}
+        >
+          <CardContent>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="forecast-category-label">
+                    اختر الأقسام
+                  </InputLabel>
+                  <Select
+                    labelId="forecast-category-label"
+                    multiple
+                    value={selectedDemandCategories}
+                    onChange={handleDemandCategoryChange}
+                    input={<OutlinedInput label="اختر الأقسام" />}
+                    renderValue={(selected) => (
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                        {selected.map((value) => (
+                          <Chip
+                            key={value}
+                            label={value}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                          />
+                        ))}
+                      </Box>
+                    )}
+                  >
+                    <MenuItem value="all">
+                      <Checkbox checked={allCategoriesSelected} />
+                      <ListItemText primary="اختر الكل" />
                     </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                    {categories.map((category) => (
+                      <MenuItem key={category} value={category}>
+                        <Checkbox
+                          checked={
+                            selectedDemandCategories.indexOf(category) > -1
+                          }
+                        />
+                        <ListItemText primary={category} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-            <Grid item xs={6} md={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="تاريخ البداية"
-                value={startMonthYear}
-                onChange={(e) => setStartMonthYear(e.target.value)}
-                placeholder="YYYY-MM"
-                InputProps={{
-                  startAdornment: (
-                    <DateRange
-                      fontSize="small"
-                      color="action"
-                      sx={{ mr: 1 }}
-                    />
-                  ),
-                }}
-              />
-            </Grid>
+              <Grid item xs={8} md={4}>
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={showQuantity}
+                        onChange={(e) => setShowQuantity(e.target.checked)}
+                        color="primary"
+                        size="small"
+                      />
+                    }
+                    label="عرض الكمية"
+                  />
 
-            <Grid item xs={6} md={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="تاريخ النهاية"
-                value={endMonthYear}
-                onChange={(e) => setEndMonthYear(e.target.value)}
-                placeholder="YYYY-MM"
-                InputProps={{
-                  startAdornment: (
-                    <DateRange
-                      fontSize="small"
-                      color="action"
-                      sx={{ mr: 1 }}
-                    />
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={6} md={2}>
-              <Stack direction="row" spacing={1}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={showQuantity}
-                      onChange={(e) => setShowQuantity(e.target.checked)}
-                      color="primary"
-                      size="small"
-                    />
-                  }
-                  label="الكمية"
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={showNetProfit}
-                      onChange={(e) => setShowNetProfit(e.target.checked)}
-                      color="success"
-                      size="small"
-                    />
-                  }
-                  label="الصافي"
-                />
-              </Stack>
-            </Grid>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={showNetProfit}
+                        onChange={(e) => setShowNetProfit(e.target.checked)}
+                        color="success"
+                        size="small"
+                      />
+                    }
+                    label="عرض الصافي"
+                  />
+                </Stack>
+              </Grid>
 
-            <Grid item xs={6} md={2}>
-              <Button
-                fullWidth
-                variant="contained"
-                color="primary"
-                startIcon={
-                  isLoadingMonthlyDemand ? (
-                    <CircularProgress size={20} color="inherit" />
-                  ) : (
-                    <ShowChart />
-                  )
-                }
-                onClick={handleMonthlyDemandSubmit}
-                disabled={isLoadingMonthlyDemand}
-                type="submit"
-                sx={{ height: "40px" }}
+              <Grid
+                item
+                xs={4}
+                md={2}
+                sx={{ display: "flex", justifyContent: "flex-end" }}
               >
-                عرض البيانات
-              </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={
+                    isLoadingMonthlyDemand ? (
+                      <CircularProgress size={20} color="inherit" />
+                    ) : (
+                      <ShowChart />
+                    )
+                  }
+                  onClick={handleMonthlyDemandSubmit}
+                  disabled={isLoadingMonthlyDemand}
+                  sx={{ height: "40px", minWidth: "140px" }}
+                >
+                  عرض البيانات
+                </Button>
+              </Grid>
             </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-    );
+          </CardContent>
+        </Card>
+      );
+    } else if (activeTab === 1) {
+      // Historical tab filters
+      return (
+        <Card
+          elevation={0}
+          component="form"
+          onSubmit={handleMonthlyDemandSubmit}
+          sx={{
+            mb: 3,
+            borderRadius: 3,
+            bgcolor: alpha(theme.palette.primary.main, 0.05),
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+          }}
+        >
+          <CardContent>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="monthly-category-label">
+                    اختر الأقسام
+                  </InputLabel>
+                  <Select
+                    labelId="monthly-category-label"
+                    multiple
+                    value={selectedMonthlyDemandCategories}
+                    onChange={handleMonthlyDemandCategoryChange}
+                    input={<OutlinedInput label="اختر الأقسام" />}
+                    renderValue={(selected) => (
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                        {selected.map((value) => (
+                          <Chip
+                            key={value}
+                            label={value}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                          />
+                        ))}
+                      </Box>
+                    )}
+                  >
+                    {categories.map((category) => (
+                      <MenuItem key={category} value={category}>
+                        <Checkbox
+                          checked={
+                            selectedMonthlyDemandCategories.indexOf(category) >
+                            -1
+                          }
+                        />
+                        <ListItemText primary={category} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={6} md={2}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="تاريخ البداية"
+                  value={startMonthYear}
+                  onChange={(e) => setStartMonthYear(e.target.value)}
+                  placeholder="YYYY-MM"
+                  InputProps={{
+                    startAdornment: (
+                      <DateRange
+                        fontSize="small"
+                        color="action"
+                        sx={{ mr: 1 }}
+                      />
+                    ),
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={6} md={2}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="تاريخ النهاية"
+                  value={endMonthYear}
+                  onChange={(e) => setEndMonthYear(e.target.value)}
+                  placeholder="YYYY-MM"
+                  InputProps={{
+                    startAdornment: (
+                      <DateRange
+                        fontSize="small"
+                        color="action"
+                        sx={{ mr: 1 }}
+                      />
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={6} md={2}>
+                <Stack direction="row" spacing={1}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={showQuantity}
+                        onChange={(e) => setShowQuantity(e.target.checked)}
+                        color="primary"
+                        size="small"
+                      />
+                    }
+                    label="الكمية"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={showNetProfit}
+                        onChange={(e) => setShowNetProfit(e.target.checked)}
+                        color="success"
+                        size="small"
+                      />
+                    }
+                    label="الصافي"
+                  />
+                </Stack>
+              </Grid>
+
+              <Grid item xs={6} md={2}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  startIcon={
+                    isLoadingMonthlyDemand ? (
+                      <CircularProgress size={20} color="inherit" />
+                    ) : (
+                      <ShowChart />
+                    )
+                  }
+                  onClick={handleMonthlyDemandSubmit}
+                  disabled={isLoadingMonthlyDemand}
+                  type="submit"
+                  sx={{ height: "40px" }}
+                >
+                  عرض البيانات
+                </Button>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // No filter panel for the seasonal analysis tab
+    return null;
   };
 
   return (
@@ -863,13 +1192,13 @@ function Visualizations() {
           flexDirection: "column",
         }}
       >
-        {/* Filter Panel for Historical Tab */}
-        {activeTab === 1 && renderHistoricalFilterPanel()}
+        {/* Filter Panel */}
+        {renderFilterPanel()}
 
         {/* Content based on selected tab */}
         <Box sx={{ flex: 1 }}>
           {activeTab === 0 ? (
-            <DemandForecastComponent />
+            renderForecastContent()
           ) : activeTab === 1 ? (
             renderHistoricalContent()
           ) : activeTab === 2 ? (

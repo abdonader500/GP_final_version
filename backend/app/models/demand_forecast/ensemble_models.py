@@ -171,6 +171,17 @@ class EnsembleForecaster:
         Returns:
             tuple: (X_train, X_test, y_train, y_test)
         """
+        nan_mask = ~y_train.isna()
+        if not nan_mask.all():
+            logger.warning(f"Found {(~nan_mask).sum()} NaN values in target variable. Removing them.")
+            y_train = y_train[nan_mask]
+            X_train = X_train[nan_mask]
+
+        nan_mask_test = ~y_test.isna()
+        if not nan_mask_test.all():
+            logger.warning(f"Found {(~nan_mask_test).sum()} NaN values in test target. Removing them.")
+            y_test = y_test[nan_mask_test]
+            X_test = X_test[nan_mask_test]
         if time_based and date_col is not None:
             # Sort data by date
             sorted_indices = date_col.argsort()

@@ -390,16 +390,22 @@ class ForecastService:
         if train_ensemble:
             logger.info("Training ensemble models")
             
-            # Filter data for this category
-            category_data = df[df['القسم'] == category].copy()
-            
-            # Check if we have enough data
-            if len(category_data) < 12:  # Need at least a year of data
-                logger.warning(f"Insufficient data for ensemble modeling of {category}")
-            else:
-                # Create features
-                X, y, feature_names, feature_sets = self.ensemble_forecaster.prepare_features(
-                    category_data, target_col='total_quantity', category_col='القسم')
+            try:
+                # Filter data for this category
+                category_data = df[df['القسم'] == category].copy()
+                
+                # Check if we have enough data
+                if len(category_data) < 12:  # Need at least a year of data
+                    logger.warning(f"Insufficient data for ensemble modeling of {category}")
+                else:
+                    # Create features
+                    X, y, feature_names, feature_sets = self.ensemble_forecaster.prepare_features(
+                        category_data, target_col='total_quantity', category_col='القسم')
+                    
+                    # Rest of the ensemble code...
+            except Exception as e:
+                logger.error(f"Error in ensemble modeling for {category}: {e}")
+                # Continue with time series models
                 
                 if X is None or y is None:
                     logger.warning(f"Failed to prepare features for ensemble modeling of {category}")
@@ -497,13 +503,27 @@ class ForecastService:
         for category in categories:
             logger.info(f"Processing category: {category}")
             
-            # Train models for this category
-            category_results = self.train_models_for_category(
-                df, category, forecast_horizon=forecast_horizon, test_size=test_size,
-                train_timeseries=train_timeseries, train_ensemble=train_ensemble
-            )
-            
-            results[category] = category_results
+            try:
+                # Train models for this category
+                category_results = self.train_models_for_category(
+                    df, category, forecast_horizon=forecast_horizon, test_size=test_size,
+                    train_timeseries=train_timeseries, train_ensemble=train_ensemble
+                )
+                
+                results[category] = category_results
+                logger.info(f"Successfully processed category: {category}")
+            except Exception as e:
+                logger.error(f"Error processing category {category}: {e}")
+                # Add basic error information to results
+                results[category] = {
+                    'category': category,
+                    'error': str(e),
+                    'timeseries_models': {},
+                    'ensemble_models': {},
+                    'evaluation': {'error': str(e)}
+                }
+                # Continue with next category
+                continue
             
         # Identify best model across all categories
         best_model_id = None
@@ -863,12 +883,20 @@ class ForecastService:
                         suffixes=('_spec', '_category')
                     )
                     
-                    # Calculate ratio
-                    merged['ratio'] = merged['total_quantity_spec'] / merged['total_quantity_category']
-                    mean_ratio = merged['ratio'].mean()
+                    # Handle division by zero
+                    merged['ratio'] = np.where(
+                        merged['total_quantity_category'] > 0,
+                        merged['total_quantity_spec'] / merged['total_quantity_category'],
+                        0  # Default ratio when category total is zero
+                    )
                     
-                    if np.isnan(mean_ratio) or mean_ratio == 0:
-                        mean_ratio = 0.1  # Default to 10% if ratio is invalid
+                    # Calculate mean ratio safely
+                    if len(merged) > 0 and not merged['ratio'].isna().all():
+                        mean_ratio = merged['ratio'].mean()
+                        if np.isnan(mean_ratio) or mean_ratio == 0:
+                            mean_ratio = 0.1  # Default if ratio is invalid
+                    else:
+                        mean_ratio = 0.1  # Default when no valid data
                         
                     # Generate category forecast
                     category_forecast = self.generate_forecast(
@@ -878,18 +906,18 @@ class ForecastService:
                         logger.warning(f"Failed to generate category forecast for {category}")
                         continue
                         
-                    # Apply ratio to get specification forecast
-                    spec_forecast = category_forecast * mean_ratio
+                    # Apply ratio to get specification forecast - use copy to avoid SettingWithCopyWarning
+                    spec_forecast = category_forecast.copy() * mean_ratio
                     
                     # Ensure non-negative values
                     spec_forecast = spec_forecast.clip(lower=0)
                     
-                    # Store forecast
+                    # Store forecast safely
                     item_forecasts[category][spec] = spec_forecast
-                    logger.info(f"Generated {len(spec_forecast)} forecasts for {category} - {spec}")
                     
                 except Exception as e:
                     logger.error(f"Error generating forecast for {category} - {spec}: {e}")
+                    # Continue with next specification
                     continue
         
         return item_forecasts
@@ -927,8 +955,7 @@ class ForecastService:
                 return results
                 
             # Create features
-            df_with_features = self.create_features(df)
-            
+            df_with_features = self.create_features(df, add_external=False)
             if df_with_features is None:
                 results['success'] = False
                 results['message'] = 'Failed to create features'

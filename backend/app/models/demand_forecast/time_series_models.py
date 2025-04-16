@@ -750,7 +750,8 @@ class TimeSeriesModels:
                 freq_map = {'D': 'days', 'W': 'weeks', 'M': 'months', 'Q': 'quarters', 'Y': 'years'}
                 prophet_freq = freq_map.get(freq, 'months')
                 
-                future = model.make_future_dataframe(periods=future_periods, freq=freq)
+                future = model.make_future_dataframe(periods=int(future_periods), freq=freq)
+
                 forecast_df = model.predict(future)
                 
                 # Extract the forecast portion only

@@ -1,0 +1,212 @@
+{
+  "exp_smoothing_\u0627\u062d\u0630\u064a\u0629 \u0627\u0637\u0641\u0627\u0644": {
+    "model_id": "exp_smoothing_\u0627\u062d\u0630\u064a\u0629 \u0627\u0637\u0641\u0627\u0644",
+    "model_type": "exp_smoothing",
+    "category": "\u0627\u062d\u0630\u064a\u0629 \u0627\u0637\u0641\u0627\u0644",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:07",
+    "metrics": {
+      "rmse": 44.76186393787187,
+      "mae": 39.40440580751664,
+      "mape": 140.08034575575402,
+      "r2": 0.00775497047849194
+    }
+  },
+  "prophet_\u0627\u062d\u0630\u064a\u0629 \u0627\u0637\u0641\u0627\u0644": {
+    "model_id": "prophet_\u0627\u062d\u0630\u064a\u0629 \u0627\u0637\u0641\u0627\u0644",
+    "model_type": "prophet",
+    "category": "\u0627\u062d\u0630\u064a\u0629 \u0627\u0637\u0641\u0627\u0644",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:09",
+    "metrics": null
+  },
+  "exp_smoothing_\u0627\u062d\u0630\u064a\u0629 \u062d\u0631\u064a\u0645\u064a": {
+    "model_id": "exp_smoothing_\u0627\u062d\u0630\u064a\u0629 \u062d\u0631\u064a\u0645\u064a",
+    "model_type": "exp_smoothing",
+    "category": "\u0627\u062d\u0630\u064a\u0629 \u062d\u0631\u064a\u0645\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:09",
+    "metrics": {
+      "rmse": 313.1062078385584,
+      "mae": 285.67437413272285,
+      "mape": 46.05512614119918,
+      "r2": -1.596180598517282
+    }
+  },
+  "prophet_\u0627\u062d\u0630\u064a\u0629 \u062d\u0631\u064a\u0645\u064a": {
+    "model_id": "prophet_\u0627\u062d\u0630\u064a\u0629 \u062d\u0631\u064a\u0645\u064a",
+    "model_type": "prophet",
+    "category": "\u0627\u062d\u0630\u064a\u0629 \u062d\u0631\u064a\u0645\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:11",
+    "metrics": null
+  },
+  "exp_smoothing_\u0627\u062d\u0630\u064a\u0629 \u0631\u062c\u0627\u0644\u064a": {
+    "model_id": "exp_smoothing_\u0627\u062d\u0630\u064a\u0629 \u0631\u062c\u0627\u0644\u064a",
+    "model_type": "exp_smoothing",
+    "category": "\u0627\u062d\u0630\u064a\u0629 \u0631\u062c\u0627\u0644\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:11",
+    "metrics": {
+      "rmse": 46.650187874710554,
+      "mae": 34.716652659988306,
+      "mape": 15.901811989366621,
+      "r2": -0.008336912265379581
+    }
+  },
+  "prophet_\u0627\u062d\u0630\u064a\u0629 \u0631\u062c\u0627\u0644\u064a": {
+    "model_id": "prophet_\u0627\u062d\u0630\u064a\u0629 \u0631\u062c\u0627\u0644\u064a",
+    "model_type": "prophet",
+    "category": "\u0627\u062d\u0630\u064a\u0629 \u0631\u062c\u0627\u0644\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:12",
+    "metrics": null
+  },
+  "exp_smoothing_\u0627\u0637\u0641\u0627\u0644": {
+    "model_id": "exp_smoothing_\u0627\u0637\u0641\u0627\u0644",
+    "model_type": "exp_smoothing",
+    "category": "\u0627\u0637\u0641\u0627\u0644",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:12",
+    "metrics": {
+      "rmse": 1462.7126836643645,
+      "mae": 1348.8052974816246,
+      "mape": 170.96253200079258,
+      "r2": -7.373615335431619
+    }
+  },
+  "prophet_\u0627\u0637\u0641\u0627\u0644": {
+    "model_id": "prophet_\u0627\u0637\u0641\u0627\u0644",
+    "model_type": "prophet",
+    "category": "\u0627\u0637\u0641\u0627\u0644",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:13",
+    "metrics": null
+  },
+  "exp_smoothing_\u062d\u0631\u064a\u0645\u064a": {
+    "model_id": "exp_smoothing_\u062d\u0631\u064a\u0645\u064a",
+    "model_type": "exp_smoothing",
+    "category": "\u062d\u0631\u064a\u0645\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:13",
+    "metrics": {
+      "rmse": 669.5622487648859,
+      "mae": 515.1487644468666,
+      "mape": 19.919631428600695,
+      "r2": -0.009310636838926412
+    }
+  },
+  "prophet_\u062d\u0631\u064a\u0645\u064a": {
+    "model_id": "prophet_\u062d\u0631\u064a\u0645\u064a",
+    "model_type": "prophet",
+    "category": "\u062d\u0631\u064a\u0645\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:14",
+    "metrics": null
+  },
+  "exp_smoothing_\u062f\u0627\u062e\u0644\u064a \u0627\u0637\u0641\u0627\u0644": {
+    "model_id": "exp_smoothing_\u062f\u0627\u062e\u0644\u064a \u0627\u0637\u0641\u0627\u0644",
+    "model_type": "exp_smoothing",
+    "category": "\u062f\u0627\u062e\u0644\u064a \u0627\u0637\u0641\u0627\u0644",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:14",
+    "metrics": {
+      "rmse": 183.73391309108052,
+      "mae": 149.92112702226547,
+      "mape": 48.35911137300768,
+      "r2": -1.1799836855814352
+    }
+  },
+  "prophet_\u062f\u0627\u062e\u0644\u064a \u0627\u0637\u0641\u0627\u0644": {
+    "model_id": "prophet_\u062f\u0627\u062e\u0644\u064a \u0627\u0637\u0641\u0627\u0644",
+    "model_type": "prophet",
+    "category": "\u062f\u0627\u062e\u0644\u064a \u0627\u0637\u0641\u0627\u0644",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:15",
+    "metrics": null
+  },
+  "exp_smoothing_\u062f\u0627\u062e\u0644\u064a \u062d\u0631\u064a\u0645\u064a": {
+    "model_id": "exp_smoothing_\u062f\u0627\u062e\u0644\u064a \u062d\u0631\u064a\u0645\u064a",
+    "model_type": "exp_smoothing",
+    "category": "\u062f\u0627\u062e\u0644\u064a \u062d\u0631\u064a\u0645\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:15",
+    "metrics": {
+      "rmse": 229.64583248851127,
+      "mae": 195.55194188736672,
+      "mape": 19.54670234155762,
+      "r2": -0.5150306923241288
+    }
+  },
+  "prophet_\u062f\u0627\u062e\u0644\u064a \u062d\u0631\u064a\u0645\u064a": {
+    "model_id": "prophet_\u062f\u0627\u062e\u0644\u064a \u062d\u0631\u064a\u0645\u064a",
+    "model_type": "prophet",
+    "category": "\u062f\u0627\u062e\u0644\u064a \u062d\u0631\u064a\u0645\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:16",
+    "metrics": null
+  },
+  "exp_smoothing_\u062f\u0627\u062e\u0644\u064a \u0631\u062c\u0627\u0644\u064a": {
+    "model_id": "exp_smoothing_\u062f\u0627\u062e\u0644\u064a \u0631\u062c\u0627\u0644\u064a",
+    "model_type": "exp_smoothing",
+    "category": "\u062f\u0627\u062e\u0644\u064a \u0631\u062c\u0627\u0644\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:16",
+    "metrics": {
+      "rmse": 514.8137965253144,
+      "mae": 455.98052525083324,
+      "mape": 113.03904140697436,
+      "r2": -26.734102339781767
+    }
+  },
+  "prophet_\u062f\u0627\u062e\u0644\u064a \u0631\u062c\u0627\u0644\u064a": {
+    "model_id": "prophet_\u062f\u0627\u062e\u0644\u064a \u0631\u062c\u0627\u0644\u064a",
+    "model_type": "prophet",
+    "category": "\u062f\u0627\u062e\u0644\u064a \u0631\u062c\u0627\u0644\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:17",
+    "metrics": null
+  },
+  "exp_smoothing_\u0631\u062c\u0627\u0644\u064a": {
+    "model_id": "exp_smoothing_\u0631\u062c\u0627\u0644\u064a",
+    "model_type": "exp_smoothing",
+    "category": "\u0631\u062c\u0627\u0644\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:17",
+    "metrics": {
+      "rmse": 353.77576614469893,
+      "mae": 317.22046476571876,
+      "mape": 22.413510547874793,
+      "r2": -0.26001502779894015
+    }
+  },
+  "prophet_\u0631\u062c\u0627\u0644\u064a": {
+    "model_id": "prophet_\u0631\u062c\u0627\u0644\u064a",
+    "model_type": "prophet",
+    "category": "\u0631\u062c\u0627\u0644\u064a",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:18",
+    "metrics": null
+  },
+  "exp_smoothing_\u0645\u062f\u0627\u0631\u0633": {
+    "model_id": "exp_smoothing_\u0645\u062f\u0627\u0631\u0633",
+    "model_type": "exp_smoothing",
+    "category": "\u0645\u062f\u0627\u0631\u0633",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:18",
+    "metrics": {
+      "rmse": 182.8709456963653,
+      "mae": 174.5529458204252,
+      "mape": 191.7371664109347,
+      "r2": 0.40852824726911563
+    }
+  },
+  "prophet_\u0645\u062f\u0627\u0631\u0633": {
+    "model_id": "prophet_\u0645\u062f\u0627\u0631\u0633",
+    "model_type": "prophet",
+    "category": "\u0645\u062f\u0627\u0631\u0633",
+    "specification": null,
+    "timestamp": "2025-04-16 03:36:19",
+    "metrics": null
+  }
+}

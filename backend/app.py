@@ -8,6 +8,7 @@ from app.routes.visualization import visualization_bp
 from app.routes.price_analysis import price_analysis_bp
 from app.routes.auth import auth_bp
 from app.routes.admin import admin_bp
+from app.routes.sales_strategy import sales_strategy_bp
 
 
 
@@ -36,7 +37,8 @@ def create_app():
     app.register_blueprint(visualization_bp, url_prefix='/api/visualization')  
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
-    app.register_blueprint(price_analysis_bp, url_prefix='/api/price-analysis')  #  NEW ROUTE
+    app.register_blueprint(price_analysis_bp, url_prefix='/api/price-analysis')
+    app.register_blueprint(sales_strategy_bp, url_prefix='/api/sales-strategy') 
 
 
 

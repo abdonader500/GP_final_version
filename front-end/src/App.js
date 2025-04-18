@@ -5,6 +5,7 @@ import Header from './components/Header';
 import Home from './pages/Home';
 import Pricing from './pages/Pricing';
 import Visualizations from './pages/Visualizations';
+import SalesStrategy from './pages/SalesStrategy'; // Import the new component
 import Login from './pages/Login';
 import UserDashboard from './pages/UserDashboard.js';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -95,6 +96,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Visualizations />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* New Sales Strategy Route */}
+            <Route 
+              path="/sales-strategy" 
+              element={
+                <ProtectedRoute>
+                  <SalesStrategy />
                 </ProtectedRoute>
               }
             />

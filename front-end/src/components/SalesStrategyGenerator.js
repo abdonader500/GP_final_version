@@ -434,6 +434,9 @@ const SalesStrategyGenerator = () => {
           "الاستثمار في تحسين جودة المنتجات الأكثر مبيعاً",
         ],
       });
+      enhancedData.displayTopProducts = enhancedData.topProducts.filter(
+        product => product.name !== "غير محدد"
+      );
     }
 
     enhancedData.businessRecommendations = businessRecommendations;
@@ -1873,7 +1876,7 @@ const SalesStrategyGenerator = () => {
 
                     <Box sx={{ mt: 2 }}>
                       {strategyData.topProducts
-                        .slice(0, 3)
+                        .slice(0, 10)
                         .map((product, index) => (
                           <Box
                             key={index}

@@ -61,8 +61,7 @@ def generate_sales_strategy():
         print("📦 Fetching item specification monthly demand data...")
         
         query = {
-            "القسم": category,
-            "product_specification": {"$ne": "غير محدد"}  # Exclude "غير محدد"
+            "القسم": category
         }
         item_data = fetch_data("item_specification_monthly_demand", query=query, projection={"_id": 0})
         
@@ -127,6 +126,7 @@ def process_sales_data(df, category, inflation_factor=30, analysis_notes=None):
     peak_month_names = peak_months["month_name"].tolist()
     
     # 3. Year-over-year performance analysis
+    
     # Aggregate by year and calculate growth rate
     yearly_agg = df.groupby("year").agg({
         "total_quantity": "sum",
@@ -4914,7 +4914,7 @@ def get_product_trends(df):
     product_agg["revenue_pct"] = (product_agg["total_money_sold"] / total_revenue * 100).round(1)
     
     # Get top 10 products
-    top_products = product_agg.head(10)
+    top_products = product_agg.head(15)
     
     # Format for response
     top_products_data = []

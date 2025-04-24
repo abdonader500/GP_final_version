@@ -51,9 +51,15 @@ import axios from "axios";
 import Chart from "react-apexcharts";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
+import { saveAs } from 'file-saver';
+// Import docx library components for Word document generation
+import { Document, Packer, Paragraph, TextRun, Table as DocxTable, 
+  TableRow as DocxTableRow, TableCell as DocxTableCell, BorderStyle, 
+  AlignmentType, HeadingLevel, WidthType } from 'docx';
 
 const SalesStrategyGenerator = () => {
   const theme = useTheme();
+  const AmiriRegularBase64 = "data:font/ttf;base64,AAEAAA...";
 
   // State
   const [categories, setCategories] = useState([]);
@@ -65,6 +71,7 @@ const SalesStrategyGenerator = () => {
   const [fetchingCategories, setFetchingCategories] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [inflationFactor, setInflationFactor] = useState(30); // Default 30% annual inflation
+  const [exportFormat, setExportFormat] = useState("word"); // Default to Word export
 
   // Fetch categories when component mounts
   useEffect(() => {
@@ -159,7 +166,7 @@ const SalesStrategyGenerator = () => {
     }
   };
 
-  // Enhance the strategy data with additional insights
+  // Enhance the strategy data with additional insights (Unchanged function)
   const enhanceStrategyData = (data) => {
     // If there's no data, return null
     if (!data) return null;
@@ -443,359 +450,356 @@ const SalesStrategyGenerator = () => {
 
     return enhancedData;
   };
-
-  // Generate PDF report
-  const generatePdfReport = async () => {
-    if (!strategyData) return;
-
-    setGeneratingPdf(true);
-
-    try {
-      // Create new jsPDF instance
-      const pdf = new jsPDF("p", "mm", "a4");
-
-      // Track the Y position manually
-      let currentY = 20;
-
-      // Add title
-      pdf.setFontSize(22);
-      pdf.setTextColor(25, 118, 210); // Primary color
-      pdf.text(`استراتيجية المبيعات: ${strategyData.category}`, 105, currentY, {
-        align: "center",
+  // Function to generate a Word document with all the strategy data
+  // Simple function to generate a Word document with basic content
+const generateWordDocument = async (strategyData) => {
+  if (!strategyData) return false;
+  
+  try {
+    // Create basic paragraph
+    const createParagraph = (text) => {
+      return new Paragraph({
+        text: text,
+        alignment: AlignmentType.RIGHT,
+        bidirectional: true,
       });
-
-      // Update Y position
-      currentY += 10;
-
-      // Add date
-      pdf.setFontSize(12);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(
-        `تاريخ الإنشاء: ${new Date().toLocaleDateString("ar-EG")}`,
-        105,
-        currentY,
-        { align: "center" }
-      );
-
-      // Update Y position
-      currentY += 15;
-
-      // Add summary section
-      pdf.setFontSize(16);
-      pdf.setTextColor(25, 118, 210);
-      pdf.text("ملخص الأداء والتوصيات", 105, currentY, { align: "center" });
-
-      // Update Y position
-      currentY += 10;
-
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-
-      // Summary bullets
-      pdf.text(
-        `• إجمالي المبيعات المتوقعة: ${strategyData.annualQuantity.toLocaleString()} قطعة`,
-        190,
-        currentY,
-        { align: "right" }
-      );
-      currentY += 8;
-
-      pdf.text(
-        `• إجمالي الإيرادات المتوقعة: ${strategyData.annualRevenue.toLocaleString()} جنيه`,
-        190,
-        currentY,
-        { align: "right" }
-      );
-      currentY += 8;
-
-      pdf.text(
-        `• أشهر الذروة: ${strategyData.peakMonths.join("، ")}`,
-        190,
-        currentY,
-        { align: "right" }
-      );
-      currentY += 8;
-
-      pdf.text(
-        `• الموسم الأقوى: ${strategyData.strongestSeason}`,
-        190,
-        currentY,
-        { align: "right" }
-      );
-      currentY += 8;
-
-      pdf.text(
-        `• الموسم الأضعف: ${strategyData.weakestSeason}`,
-        190,
-        currentY,
-        { align: "right" }
-      );
-      currentY += 8;
-
-      // Add inflation impact if detected
-      if (
-        strategyData.inflationImpact &&
-        strategyData.inflationImpact.detected
-      ) {
-        pdf.setTextColor(220, 53, 69); // Danger/Error red
-        pdf.text(
-          `• تأثير التضخم: نعم (زيادة السعر ${strategyData.inflationImpact.avgPriceIncrease}% مع انخفاض الكمية ${strategyData.inflationImpact.quantityDecrease}%)`,
-          190,
-          currentY,
-          { align: "right" }
-        );
-        pdf.setTextColor(0, 0, 0); // Reset color
-        currentY += 12;
-      } else {
-        currentY += 4;
-      }
-
-      // Business recommendations
-      pdf.setFontSize(16);
-      pdf.setTextColor(25, 118, 210);
-      pdf.text("التوصيات الاستراتيجية", 105, currentY, { align: "center" });
-      currentY += 10;
-
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-
-      if (
-        strategyData.businessRecommendations &&
-        strategyData.businessRecommendations.length > 0
-      ) {
-        strategyData.businessRecommendations.forEach((rec, index) => {
-          if (index > 0 && currentY > 250) {
-            // Add new page if running out of space
-            pdf.addPage();
-            currentY = 20;
-          }
-
-          pdf.setFontSize(14);
-          pdf.setTextColor(25, 118, 210);
-          pdf.text(`${rec.title}`, 190, currentY, { align: "right" });
-          currentY += 7;
-
-          pdf.setFontSize(12);
-          pdf.setTextColor(0, 0, 0);
-
-          rec.recommendations.forEach((item, i) => {
-            pdf.text(`${i + 1}. ${item}`, 185, currentY, { align: "right" });
-            currentY += 7;
-          });
-
-          currentY += 5;
-        });
-      }
-
-      // Check if we need a new page
-      if (currentY > 240) {
-        pdf.addPage();
-        currentY = 20;
-      }
-
-      // Seasonal events strategies
-      if (
-        strategyData.seasonalEvents &&
-        strategyData.seasonalEvents.length > 0
-      ) {
-        pdf.setFontSize(16);
-        pdf.setTextColor(25, 118, 210);
-        pdf.text("استراتيجيات المواسم الخاصة", 105, currentY, {
-          align: "center",
-        });
-        currentY += 10;
-
-        pdf.setFontSize(12);
-
-        // Create table data for seasonal events
-        const seasonsTableData = strategyData.seasonalEvents.map((event) => {
-          const strategies = event.strategies.join("\n");
-          return [
-            event.name,
-            event.strategicImportance,
-            event.salesPattern,
-            strategies,
-          ];
-        });
-
-        // Add the table
-        pdf.autoTable({
-          startY: currentY,
-          head: [
-            ["الموسم", "الأهمية", "نمط المبيعات", "الاستراتيجيات المقترحة"],
-          ],
-          body: seasonsTableData,
-          headStyles: { fillColor: [25, 118, 210] },
-          styles: { halign: "right", font: "helvetica" },
-          margin: { right: 15, left: 15 },
-          columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 25 },
-            2: { cellWidth: 25 },
-            3: { cellWidth: "auto" },
-          },
-        });
-
-        // Update Y position based on where the table ended
-        currentY = pdf.lastAutoTable.finalY + 15;
-      }
-
-      // Make sure we have space for pricing recommendations
-      if (currentY > 220) {
-        pdf.addPage();
-        currentY = 20;
-      }
-
-      // Pricing recommendations
-      pdf.setFontSize(16);
-      pdf.setTextColor(25, 118, 210);
-      pdf.text("توصيات التسعير الموسمية", 105, currentY, { align: "center" });
-      currentY += 5;
-
-      if (
-        strategyData.pricingRecommendations &&
-        strategyData.pricingRecommendations.length > 0
-      ) {
-        const pricingTableData = strategyData.pricingRecommendations.map(
-          (p) => [p.season, p.adjustment, p.reason]
-        );
-
-        // Add the pricing table
-        pdf.autoTable({
-          startY: currentY,
-          head: [["الموسم", "تعديل السعر", "السبب"]],
-          body: pricingTableData,
-          headStyles: { fillColor: [25, 118, 210] },
-          styles: { halign: "right", font: "helvetica" },
-          margin: { right: 15, left: 15 },
-        });
-
-        // Update Y position
-        currentY = pdf.lastAutoTable.finalY + 15;
-      }
-
-      // Add new page for marketing campaigns
-      pdf.addPage();
-      currentY = 20;
-
-      // Marketing campaigns
-      pdf.setFontSize(16);
-      pdf.setTextColor(25, 118, 210);
-      pdf.text("الحملات التسويقية المقترحة", 105, currentY, {
-        align: "center",
+    };
+    
+    // Create a simple heading
+    const createHeading = (text, level) => {
+      return new Paragraph({
+        text: text,
+        heading: level,
+        alignment: AlignmentType.RIGHT,
+        bidirectional: true,
       });
-      currentY += 5;
-
-      if (
-        strategyData.marketingCampaigns &&
-        strategyData.marketingCampaigns.length > 0
-      ) {
-        const campaignsTableData = strategyData.marketingCampaigns.map((c) => [
-          c.name,
-          c.timing,
-          c.focus,
-          c.budget,
-        ]);
-
-        // Add the marketing campaigns table
-        pdf.autoTable({
-          startY: currentY,
-          head: [["الحملة", "التوقيت", "التركيز", "الميزانية"]],
-          body: campaignsTableData,
-          headStyles: { fillColor: [25, 118, 210] },
-          styles: { halign: "right", font: "helvetica" },
-          margin: { right: 15, left: 15 },
-        });
-
-        // Update Y position
-        currentY = pdf.lastAutoTable.finalY + 15;
-      }
-
-      // Top products section
-      pdf.setFontSize(16);
-      pdf.setTextColor(25, 118, 210);
-      pdf.text("المنتجات الأكثر مبيعًا", 105, currentY, { align: "center" });
-      currentY += 5;
-
-      if (strategyData.topProducts && strategyData.topProducts.length > 0) {
-        const productsTableData = strategyData.topProducts.map((p) => [
-          p.name,
-          `${p.percentage}%`,
-        ]);
-
-        // Add the products table
-        pdf.autoTable({
-          startY: currentY,
-          head: [["المنتج", "النسبة المئوية"]],
-          body: productsTableData,
-          headStyles: { fillColor: [25, 118, 210] },
-          styles: { halign: "right", font: "helvetica" },
-          margin: { right: 15, left: 15 },
-        });
-
-        // Update Y position
-        currentY = pdf.lastAutoTable.finalY + 15;
-      }
-
-      // Conclusion section
-      pdf.setFontSize(16);
-      pdf.setTextColor(25, 118, 210);
-      pdf.text("الخلاصة والملاحظات النهائية", 105, currentY, {
-        align: "center",
+    };
+    
+    // Create a bullet point
+    const createBullet = (text) => {
+      return new Paragraph({
+        text: `• ${text}`,
+        alignment: AlignmentType.RIGHT,
+        bidirectional: true,
+        indent: { left: 720 },
       });
-      currentY += 10;
-
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-
-      let conclusion = `بناءً على تحليل بيانات المبيعات التاريخية لقسم ${strategyData.category}، `;
-
-      if (
-        strategyData.inflationImpact &&
-        strategyData.inflationImpact.detected
-      ) {
-        conclusion += `نلاحظ تأثير التضخم على المبيعات حيث ارتفعت الأسعار بنسبة ${strategyData.inflationImpact.avgPriceIncrease}% مع انخفاض الكميات بنسبة ${strategyData.inflationImpact.quantityDecrease}%. `;
-        conclusion += `نوصي بتبني استراتيجية تسعير متوازنة للحفاظ على حجم المبيعات مع تقديم قيمة إضافية للعملاء. `;
-      }
-
-      conclusion += `يجب التركيز على موسم ${
-        strategyData.strongestSeason
-      } وأشهر الذروة ${strategyData.peakMonths.join(
-        "، "
-      )} لتحقيق أقصى استفادة. `;
-
-      conclusion += `كما نوصي بتطوير استراتيجيات خاصة لتحفيز المبيعات خلال موسم ${strategyData.weakestSeason} من خلال العروض الترويجية المبتكرة وتنويع التشكيلة. `;
-
-      if (strategyData.topProducts && strategyData.topProducts.length > 0) {
-        conclusion += `يجب الاستثمار في تطوير منتجات ${
-          strategyData.topProducts[0].name
-        } و${
-          strategyData.topProducts[1]?.name || ""
-        } للاستفادة من شعبيتها العالية في السوق.`;
-      }
-
-      // Add analysis notes if they exist
-      if (analysisNotes) {
-        conclusion += `\n\nملاحظات إضافية: ${analysisNotes}`;
-      }
-
-      // Write conclusion to multiple lines if needed
-      const lines = pdf.splitTextToSize(conclusion, 170);
-      pdf.text(lines, 190, currentY, { align: "right" });
-
-      // Save the PDF
-      pdf.save(`استراتيجية_مبيعات_${strategyData.category}.pdf`);
-    } catch (err) {
-      console.error("Error generating PDF:", {
-        name: err.name,
-        message: err.message,
-        stack: err.stack,
-      });
-      setError("فشل في إنشاء ملف PDF. يرجى المحاولة مرة أخرى.");
-    } finally {
-      setGeneratingPdf(false);
+    };
+    
+    // Create a very basic document structure with minimal formatting
+    const children = [
+      // Title
+      createHeading(`استراتيجية المبيعات: ${strategyData.category}`, HeadingLevel.HEADING_1),
+      createParagraph(`تاريخ الإنشاء: ${new Date().toLocaleDateString("ar-EG")}`),
+      
+      // Summary
+      createHeading("ملخص الأداء والتوصيات", HeadingLevel.HEADING_2),
+      createParagraph(`إجمالي المبيعات المتوقعة: ${strategyData.annualQuantity.toLocaleString()} قطعة`),
+      createParagraph(`إجمالي الإيرادات المتوقعة: ${strategyData.annualRevenue.toLocaleString()} جنيه`),
+      createParagraph(`أشهر الذروة: ${strategyData.peakMonths.join("، ")}`),
+      createParagraph(`الموسم الأقوى: ${strategyData.strongestSeason}`),
+      createParagraph(`الموسم الأضعف: ${strategyData.weakestSeason}`),
+      
+      // Recommendations
+      createHeading("التوصيات الاستراتيجية", HeadingLevel.HEADING_2),
+      createBullet(`التركيز الموسمي: تكثيف الجهود التسويقية خلال موسم ${strategyData.strongestSeason} وأشهر الذروة.`),
+      createBullet(`تحفيز المبيعات الموسمية: تطبيق استراتيجية تسعير متغيرة خلال العام، مع تقديم عروض خاصة خلال موسم ${strategyData.weakestSeason}.`),
+      createBullet("إدارة المخزون: التخطيط المسبق للمخزون بناءً على توقعات الطلب الشهرية."),
+    ];
+    
+    // If there are inflation impacts, add that section
+    if (strategyData.inflationImpact && strategyData.inflationImpact.detected) {
+      children.push(createHeading("تأثير التضخم", HeadingLevel.HEADING_2));
+      children.push(createParagraph(`تم اكتشاف تأثير للتضخم مع زيادة في الأسعار بنسبة ${strategyData.inflationImpact.avgPriceIncrease}% وانخفاض في الكميات بنسبة ${strategyData.inflationImpact.quantityDecrease}%`));
+      children.push(createBullet("تطوير خيارات منتجات بفئات سعرية متنوعة"));
+      children.push(createBullet("تقديم قيمة إضافية للعملاء لتبرير الزيادة في الأسعار"));
     }
-  };
+    
+    // Add notes if provided
+    if (strategyData.analysisNotes) {
+      children.push(createHeading("ملاحظات إضافية", HeadingLevel.HEADING_2));
+      children.push(createParagraph(strategyData.analysisNotes));
+    }
+    
+    // Create a simple document with minimal formatting
+    const doc = new Document({
+      sections: [{
+        properties: {
+          page: {
+            margin: {
+              top: "2.54cm",
+              right: "2.54cm",
+              bottom: "2.54cm",
+              left: "2.54cm",
+            },
+          },
+        },
+        children: children,
+      }],
+    });
+    
+    // Generate document buffer
+    const buffer = await Packer.toBuffer(doc);
+    
+    // Create and save blob
+    const blob = new Blob([buffer], { 
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+    });
+    
+    saveAs(blob, `استراتيجية_المبيعات_${strategyData.category}_${Date.now()}.docx`);
+    
+    return true;
+  } catch (error) {
+    console.error("Error generating Word document:", error);
+    return false;
+  }
+};
+
+// Enhanced HTML export that will always work as a reliable fallback
+const generateHtmlReport = (strategyData) => {
+  if (!strategyData) return false;
+  
+  try {
+    // Create a simple HTML report
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <title>استراتيجية المبيعات: ${strategyData.category}</title>
+        <style>
+          body {
+            font-family: Arial, 'Segoe UI', Tahoma, sans-serif;
+            margin: 20mm;
+            direction: rtl;
+            text-align: right;
+            color: #333;
+          }
+          h1 {
+            color: #333;
+            font-size: 24px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+          }
+          h2 {
+            color: #444;
+            font-size: 18px;
+            margin-top: 20px;
+            background-color: #f8f8f8;
+            padding: 8px;
+            border-right: 3px solid #3f51b5;
+          }
+          ul {
+            padding-right: 20px;
+          }
+          li {
+            margin-bottom: 8px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+          }
+          th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+          }
+          th {
+            background-color: #f2f2f2;
+          }
+          .section {
+            margin-bottom: 20px;
+          }
+          .alert {
+            background-color: #ffebee;
+            padding: 15px;
+            border: 1px solid #ffcdd2;
+            border-radius: 4px;
+            margin: 15px 0;
+          }
+          .success {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border: 1px solid #c8e6c9;
+            border-radius: 4px;
+            margin: 15px 0;
+          }
+          @media print {
+            body {
+              margin: 0;
+              padding: 15mm;
+            }
+          }
+          .print-button {
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <button class="print-button" onclick="window.print()">طباعة التقرير</button>
+        
+        <h1>استراتيجية المبيعات: ${strategyData.category}</h1>
+        <p>تاريخ الإنشاء: ${new Date().toLocaleDateString("ar-EG")}</p>
+        
+        <div class="section">
+          <h2>ملخص الأداء والتوصيات</h2>
+          <ul>
+            <li>إجمالي المبيعات المتوقعة: ${strategyData.annualQuantity.toLocaleString()} قطعة</li>
+            <li>إجمالي الإيرادات المتوقعة: ${strategyData.annualRevenue.toLocaleString()} جنيه</li>
+            <li>أشهر الذروة: ${strategyData.peakMonths.join("، ")}</li>
+            <li>الموسم الأقوى: ${strategyData.strongestSeason}</li>
+            <li>الموسم الأضعف: ${strategyData.weakestSeason}</li>
+            ${strategyData.inflationImpact && strategyData.inflationImpact.detected ? 
+              `<li>تأثير التضخم: نعم (زيادة السعر ${strategyData.inflationImpact.avgPriceIncrease}% مع انخفاض الكمية ${strategyData.inflationImpact.quantityDecrease}%)</li>` : ''}
+          </ul>
+        </div>
+        
+        <div class="section">
+          <h2>التحليل الشهري للمبيعات</h2>
+          <table>
+            <tr>
+              <th>الشهر</th>
+              <th>الكمية</th>
+              <th>الإيرادات</th>
+            </tr>
+            ${strategyData.monthlyData.map(month => `
+            <tr>
+              <td>${month.month}</td>
+              <td>${month.quantity.toLocaleString()}</td>
+              <td>${month.revenue.toLocaleString()} جنيه</td>
+            </tr>
+            `).join('')}
+          </table>
+        </div>
+        
+        <div class="section">
+          <h2>التحليل الموسمي للمبيعات</h2>
+          <table>
+            <tr>
+              <th>الموسم</th>
+              <th>الكمية</th>
+              <th>الإيرادات</th>
+            </tr>
+            <tr>
+              <td>الشتاء</td>
+              <td>${strategyData.seasonStats.winter.totalQuantity.toLocaleString()}</td>
+              <td>${strategyData.seasonStats.winter.totalRevenue.toLocaleString()} جنيه</td>
+            </tr>
+            <tr>
+              <td>الربيع</td>
+              <td>${strategyData.seasonStats.spring.totalQuantity.toLocaleString()}</td>
+              <td>${strategyData.seasonStats.spring.totalRevenue.toLocaleString()} جنيه</td>
+            </tr>
+            <tr>
+              <td>الصيف</td>
+              <td>${strategyData.seasonStats.summer.totalQuantity.toLocaleString()}</td>
+              <td>${strategyData.seasonStats.summer.totalRevenue.toLocaleString()} جنيه</td>
+            </tr>
+            <tr>
+              <td>الخريف</td>
+              <td>${strategyData.seasonStats.fall.totalQuantity.toLocaleString()}</td>
+              <td>${strategyData.seasonStats.fall.totalRevenue.toLocaleString()} جنيه</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div class="section">
+          <h2>التوصيات الاستراتيجية</h2>
+          <div class="success">
+            <p>بناءً على تحليل بيانات المبيعات التاريخية لقسم ${strategyData.category}، توصي الاستراتيجية بالتركيز على النقاط التالية:</p>
+            <ul>
+              ${strategyData.inflationImpact && strategyData.inflationImpact.detected ? `
+              <li><strong>مواجهة تأثير التضخم:</strong> تبني استراتيجية تسعير متوازنة للحفاظ على الكميات مع تقديم قيمة مضافة للعملاء لتبرير الزيادة السعرية.</li>
+              ` : ''}
+              <li><strong>التركيز الموسمي:</strong> تكثيف الجهود التسويقية خلال موسم ${strategyData.strongestSeason} وأشهر الذروة ${strategyData.peakMonths.join("، ")} لتعظيم المبيعات.</li>
+              <li><strong>تحفيز المبيعات الموسمية:</strong> تطبيق استراتيجية تسعير متغيرة خلال العام، مع تقديم عروض خاصة خلال موسم ${strategyData.weakestSeason}.</li>
+              <li><strong>إدارة المخزون:</strong> التخطيط المسبق للمخزون بناءً على توقعات الطلب الشهرية لضمان توفر المنتجات خلال فترات الذروة وتجنب تكدس المخزون خلال فترات الطلب المنخفض.</li>
+            </ul>
+          </div>
+          
+          ${strategyData.analysisNotes ? `
+          <div>
+            <h3>ملاحظات تحليلية إضافية</h3>
+            <p>${strategyData.analysisNotes}</p>
+          </div>
+          ` : ''}
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Create a Blob with the HTML content
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    
+    // Create a link to download the HTML file
+    saveAs(blob, `استراتيجية_المبيعات_${strategyData.category}_${Date.now()}.html`);
+    
+    return true;
+  } catch (err) {
+    console.error("Error generating HTML report:", err);
+    return false;
+  }
+};
+
+// The main function that handles document generation
+const generatePdfReport = async () => {
+  if (!strategyData) return;
+
+  setGeneratingPdf(true);
+  setError(null);
+
+  try {
+    // Try the Word document generation first
+    console.log("Attempting to generate Word document...");
+    const wordSuccess = await generateWordDocument(strategyData);
+    
+    if (wordSuccess) {
+      // Word generation successful
+      setError(null);
+      alert("تم إنشاء ملف Word بنجاح. يمكنك فتحه في برنامج Microsoft Word.");
+      setGeneratingPdf(false);
+      return;
+    }
+    
+    // If Word generation fails, fall back to HTML
+    console.log("Word generation failed, falling back to HTML export...");
+    const htmlSuccess = generateHtmlReport(strategyData);
+    
+    if (htmlSuccess) {
+      setError(null);
+      alert("تم إنشاء ملف HTML بنجاح. يمكنك فتحه في متصفح الويب وطباعته.");
+    } else {
+      setError("حدث خطأ أثناء إنشاء التقرير. يرجى المحاولة مرة أخرى.");
+    }
+  } catch (err) {
+    console.error("Error in document generation:", err);
+    
+    // Always try HTML fallback if Word fails
+    try {
+      console.log("Exception occurred, trying HTML fallback...");
+      const htmlSuccess = generateHtmlReport(strategyData);
+      
+      if (htmlSuccess) {
+        setError(null);
+        alert("تم إنشاء ملف HTML بنجاح. يمكنك فتحه في متصفح الويب وطباعته.");
+      } else {
+        setError("حدث خطأ أثناء إنشاء التقرير. يرجى المحاولة مرة أخرى.");
+      }
+    } catch (htmlErr) {
+      console.error("HTML fallback also failed:", htmlErr);
+      setError("حدث خطأ أثناء إنشاء التقرير. يرجى المحاولة مرة أخرى.");
+    }
+  } finally {
+    setGeneratingPdf(false);
+  }
+};
 
   // Monthly data chart options
   const getMonthlyChartOptions = () => {
@@ -1656,7 +1660,7 @@ const SalesStrategyGenerator = () => {
                 onClick={generatePdfReport}
                 disabled={generatingPdf}
               >
-                {generatingPdf ? "جاري التحميل..." : "تحميل كملف PDF"}
+                {generatingPdf ? "جاري التحميل..." : "تحميل كملف Word"}
               </Button>
             </Box>
 
@@ -1675,7 +1679,7 @@ const SalesStrategyGenerator = () => {
                   }}
                 >
                   <CardContent sx={{ p: 2 }}>
-                    <Typography
+                  <Typography
                       variant="subtitle1"
                       fontWeight="bold"
                       gutterBottom
@@ -1960,23 +1964,18 @@ const SalesStrategyGenerator = () => {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {Object.keys(
-                                strategyData.performanceTrends.quantity
-                              ).map((year) => (
+                              {Object.keys(strategyData.performanceTrends.quantity).map((year) => (
                                 <TableRow key={year}>
-                                  <TableCell>{year}</TableCell>
-                                  <TableCell>
+                                  <TableCell align="center">{year}</TableCell>
+                                  <TableCell align="center">
                                     <Box
                                       sx={{
                                         display: "flex",
                                         alignItems: "center",
+                                        justifyContent: "center", // Add center justification
                                       }}
                                     >
-                                      {parseFloat(
-                                        strategyData.performanceTrends.quantity[
-                                          year
-                                        ]
-                                      ) >= 0 ? (
+                                      {parseFloat(strategyData.performanceTrends.quantity[year]) >= 0 ? (
                                         <TrendingUp
                                           fontSize="small"
                                           sx={{
@@ -1993,34 +1992,24 @@ const SalesStrategyGenerator = () => {
                                       <Typography
                                         variant="body2"
                                         color={
-                                          parseFloat(
-                                            strategyData.performanceTrends
-                                              .quantity[year]
-                                          ) >= 0
+                                          parseFloat(strategyData.performanceTrends.quantity[year]) >= 0
                                             ? "success.main"
                                             : "error.main"
                                         }
                                       >
-                                        {
-                                          strategyData.performanceTrends
-                                            .quantity[year]
-                                        }
-                                        %
+                                        {Math.abs(parseFloat(strategyData.performanceTrends.quantity[year])).toFixed(1)}%
                                       </Typography>
                                     </Box>
                                   </TableCell>
-                                  <TableCell>
+                                  <TableCell align="center">
                                     <Box
                                       sx={{
                                         display: "flex",
                                         alignItems: "center",
+                                        justifyContent: "center", // Add center justification
                                       }}
                                     >
-                                      {parseFloat(
-                                        strategyData.performanceTrends.revenue[
-                                          year
-                                        ]
-                                      ) >= 0 ? (
+                                      {parseFloat(strategyData.performanceTrends.revenue[year]) >= 0 ? (
                                         <TrendingUp
                                           fontSize="small"
                                           sx={{
@@ -2037,34 +2026,24 @@ const SalesStrategyGenerator = () => {
                                       <Typography
                                         variant="body2"
                                         color={
-                                          parseFloat(
-                                            strategyData.performanceTrends
-                                              .revenue[year]
-                                          ) >= 0
+                                          parseFloat(strategyData.performanceTrends.revenue[year]) >= 0
                                             ? "success.main"
                                             : "error.main"
                                         }
                                       >
-                                        {
-                                          strategyData.performanceTrends
-                                            .revenue[year]
-                                        }
-                                        %
+                                        {Math.abs(parseFloat(strategyData.performanceTrends.revenue[year])).toFixed(1)}%
                                       </Typography>
                                     </Box>
                                   </TableCell>
-                                  <TableCell>
+                                  <TableCell align="center">
                                     <Box
                                       sx={{
                                         display: "flex",
                                         alignItems: "center",
+                                        justifyContent: "center", // Add center justification
                                       }}
                                     >
-                                      {parseFloat(
-                                        strategyData.performanceTrends.avgPrice[
-                                          year
-                                        ]
-                                      ) >= 0 ? (
+                                      {parseFloat(strategyData.performanceTrends.avgPrice[year]) >= 0 ? (
                                         <TrendingUp
                                           fontSize="small"
                                           sx={{
@@ -2081,19 +2060,12 @@ const SalesStrategyGenerator = () => {
                                       <Typography
                                         variant="body2"
                                         color={
-                                          parseFloat(
-                                            strategyData.performanceTrends
-                                              .avgPrice[year]
-                                          ) >= 0
+                                          parseFloat(strategyData.performanceTrends.avgPrice[year]) >= 0
                                             ? "success.main"
                                             : "error.main"
                                         }
                                       >
-                                        {
-                                          strategyData.performanceTrends
-                                            .avgPrice[year]
-                                        }
-                                        %
+                                        {Math.abs(parseFloat(strategyData.performanceTrends.avgPrice[year])).toFixed(1)}%
                                       </Typography>
                                     </Box>
                                   </TableCell>
@@ -2404,55 +2376,6 @@ const SalesStrategyGenerator = () => {
 };
 
 export default SalesStrategyGenerator;
-const CustomTable = ({ children, size }) => {
-  return (
-    <table
-      style={{
-        width: "100%",
-        borderCollapse: "collapse",
-        fontSize: size === "small" ? "0.875rem" : "1rem",
-      }}
-    >
-      {children}
-    </table>
-  );
-};
-
-const CustomTableHead = ({ children }) => {
-  return <thead>{children}</thead>;
-};
-
-const CustomTableBody = ({ children }) => {
-  return <tbody>{children}</tbody>;
-};
-
-const CustomTableRow = ({ children, hover, sx }) => {
-  return (
-    <tr
-      style={{
-        backgroundColor: sx?.bgcolor || "transparent",
-        ...(hover && { ":hover": { backgroundColor: "#f5f5f5" } }),
-      }}
-    >
-      {children}
-    </tr>
-  );
-};
-
-const CustomTableCell = ({ children, sx }) => {
-  return (
-    <td
-      style={{
-        padding: "12px 16px",
-        borderBottom: "1px solid #e0e0e0",
-        fontWeight: sx?.fontWeight || "normal",
-      }}
-    >
-      {children}
-    </td>
-  );
-};
-
-const CustomTableContainer = ({ children }) => {
-  return <div style={{ overflowX: "auto" }}>{children}</div>;
-};
+                          
+                    
+                

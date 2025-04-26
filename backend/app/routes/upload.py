@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 import os
+import sys
 import pandas as pd
 import csv
 from werkzeug.utils import secure_filename
@@ -8,7 +9,7 @@ import subprocess
 import threading
 import time
 import json
-from app.models.database import init_db, insert_data
+from app.models.database import init_db, insert_data, fetch_data, get_collection
 from app.routes.auth import token_required, admin_required
 
 upload_bp = Blueprint('upload', __name__)
@@ -55,8 +56,22 @@ def validate_csv(file_path):
     except Exception as e:
         return False, f"خطأ في التحقق من الملف: {str(e)}"
 
-def run_processing_script(script_name, script_path):
-    """Run data processing script and update status."""
+def append_to_collection(collection_name, new_records):
+    """Append new records to existing collection instead of replacing data."""
+    try:
+        # Get collection
+        collection = get_collection(collection_name)
+        
+        # Insert new records without dropping existing ones
+        result = collection.insert_many(new_records)
+        
+        return len(result.inserted_ids)
+    except Exception as e:
+        print(f"❌ Error appending data to {collection_name}: {str(e)}")
+        raise
+
+def run_python_script_as_module(script_name, module_path):
+    """Run Python script as a module to avoid import issues."""
     global process_status
     
     # Update status to processing
@@ -64,60 +79,58 @@ def run_processing_script(script_name, script_path):
     process_status[script_name]["message"] = "جاري المعالجة..."
     
     try:
-        # Run the script
-        result = subprocess.run(
-            ["python", script_path],
-            capture_output=True,
-            text=True,
-            check=True
+        # Run the script as a module
+        process = subprocess.Popen(
+            [sys.executable, "-m", module_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
         )
         
-        # Update status to complete
-        process_status[script_name]["status"] = "complete"
-        process_status[script_name]["message"] = "تمت المعالجة بنجاح"
+        stdout, stderr = process.communicate()
         
-        # Log output
-        print(f"Script {script_name} completed: {result.stdout}")
-        
-        return True
-    except subprocess.CalledProcessError as e:
-        # Update status to error
-        process_status[script_name]["status"] = "error"
-        process_status[script_name]["message"] = f"حدث خطأ: {e.stderr}"
-        
-        # Log error
-        print(f"Error running script {script_name}: {e.stderr}")
-        
-        return False
+        if process.returncode == 0:
+            # Script executed successfully
+            process_status[script_name]["status"] = "complete"
+            process_status[script_name]["message"] = "تمت المعالجة بنجاح"
+            print(f"✅ Script {script_name} completed successfully")
+            print(f"Output: {stdout}")
+            return True
+        else:
+            # Script execution failed
+            process_status[script_name]["status"] = "error"
+            process_status[script_name]["message"] = f"حدث خطأ: {stderr}"
+            print(f"❌ Error running script {script_name}: {stderr}")
+            return False
     except Exception as e:
-        # Update status to error
+        # Exception occurred
         process_status[script_name]["status"] = "error"
         process_status[script_name]["message"] = f"حدث خطأ: {str(e)}"
-        
-        # Log error
-        print(f"Exception running script {script_name}: {str(e)}")
-        
+        print(f"❌ Exception running script {script_name}: {str(e)}")
         return False
 
 def process_data_pipeline():
-    """Run the data processing pipeline in sequence."""
-    # Get paths to scripts
-    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    scripts = {
-        "price_classification": os.path.join(base_path, "models", "price_classification.py"),
-        "profit_optimizer": os.path.join(base_path, "models", "profit_optimizer.py"),
-        "aggregate_historical_demand": os.path.join(base_path, "models", "aggregate_historical_demand.py"),
-        "predict_demand_2025": os.path.join(base_path, "models", "predict_demand_2025.py")
+    """Run the data processing pipeline in sequence as modules."""
+    # Define the module paths for each script
+    script_modules = {
+        "price_classification": "app.models.price_classification",
+        "profit_optimizer": "app.models.profit_optimizer",
+        "aggregate_historical_demand": "app.models.aggregate_historical_demand",
+        "predict_demand_2025": "app.models.predict_demand_2025"
     }
     
-    # Process in sequence
-    for script_name, script_path in scripts.items():
-        success = run_processing_script(script_name, script_path)
+    # Process in sequence - IMPORTANT: each script must complete before the next starts
+    for script_name, module_path in script_modules.items():
+        print(f"Starting script: {script_name} as module: {module_path}")
+        success = run_python_script_as_module(script_name, module_path)
         
         # If a script fails, stop the pipeline
         if not success:
             print(f"Pipeline stopped at {script_name} due to errors.")
             break
+        
+        # Add a small delay between scripts to ensure database operations complete
+        time.sleep(2)
 
 @upload_bp.route('/admin/upload-data', methods=['POST'])
 @token_required
@@ -133,6 +146,7 @@ def upload_data():
             }), 400
         
         file = request.files['file']
+        data_type = request.form.get('dataType', 'sales')  # Get data type (sales or purchases)
         
         # Check if file is empty
         if file.filename == '':
@@ -175,8 +189,9 @@ def upload_data():
         
         # If valid, save path to file for processing
         current_app.config['LAST_UPLOADED_FILE'] = file_path
+        current_app.config['LAST_UPLOADED_TYPE'] = data_type
         
-        # Save to database (directly into 'sales' collection)
+        # Save to database (APPEND to the specified collection based on data_type)
         try:
             # Read data with pandas
             df = pd.read_csv(file_path, encoding='utf-8')
@@ -187,20 +202,30 @@ def upload_data():
             # Initialize database
             init_db()
             
-            # Insert into 'sales' collection (this will replace existing data)
-            insert_data("sales", records)
+            # Determine collection name based on data type
+            collection_name = "sales" if data_type == "sales" else "purchases"
             
-            print(f"✅ Data uploaded to sales collection: {len(records)} records")
+            # Get existing data count
+            existing_count = len(fetch_data(collection_name))
+            
+            # Append to collection instead of replacing
+            inserted_count = append_to_collection(collection_name, records)
+            
+            print(f"✅ Data appended to {collection_name} collection: {inserted_count} new records added to {existing_count} existing records")
         except Exception as e:
             print(f"❌ Error saving data to database: {str(e)}")
-            # Continue process even if database insertion fails
+            return jsonify({
+                "success": False,
+                "message": f"حدث خطأ أثناء حفظ البيانات: {str(e)}"
+            }), 500
         
         # Return success response
         return jsonify({
             "success": True,
-            "message": "تم رفع الملف بنجاح والتحقق من صحته",
+            "message": f"تم رفع الملف بنجاح وإضافة {validation_result} سجل إلى قاعدة البيانات",
             "filename": filename,
-            "rows_count": validation_result
+            "rows_count": validation_result,
+            "data_type": data_type
         }), 200
         
     except Exception as e:
@@ -258,3 +283,30 @@ def get_process_status():
         "success": True,
         "processes": process_status
     }), 200
+
+@upload_bp.route('/admin/collection-stats', methods=['GET'])
+@token_required
+@admin_required
+def get_collection_stats():
+    """Get stats about the collections (count of records)."""
+    try:
+        # Initialize database
+        init_db()
+        
+        # Get counts
+        sales_count = len(fetch_data("sales"))
+        purchases_count = len(fetch_data("purchases"))
+        
+        return jsonify({
+            "success": True,
+            "stats": {
+                "sales": sales_count,
+                "purchases": purchases_count
+            }
+        }), 200
+    except Exception as e:
+        print(f"Error getting collection stats: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": f"حدث خطأ أثناء جلب إحصائيات البيانات: {str(e)}"
+        }), 500

@@ -7,6 +7,8 @@ import rtlPlugin from 'stylis-plugin-rtl';
 import App from './App';
 import './index.css';
 
+
+
 // Create an enhanced RTL theme with modern styling
 const theme = createTheme({
   direction: 'rtl',
@@ -115,3 +117,4 @@ root.render(
     </ThemeProvider>
   </CacheProvider>
 );
+

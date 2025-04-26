@@ -19,7 +19,8 @@ import {
   MenuItem,
   Avatar,
   Divider,
-  ListItemButton
+  ListItemButton,
+  Badge
 } from '@mui/material';
 import { 
   Menu as MenuIcon, 
@@ -31,7 +32,8 @@ import {
   People as PeopleIcon,
   AccountCircle,
   Logout,
-  Person
+  Person,
+  CloudUpload
 } from '@mui/icons-material';
 
 function Header() {
@@ -59,15 +61,11 @@ function Header() {
     { text: 'استراتيجيات المبيعات', icon: <Lightbulb />, path: '/sales-strategy' },
   ];
 
-  // Add admin menu item conditionally
-  const allMenuItems = [...menuItems];
-  if (user && user.role === 'admin') {
-    allMenuItems.push({ 
-      text: 'إدارة المستخدمين', 
-      icon: <PeopleIcon />, 
-      path: '/admin/users' 
-    });
-  }
+  // Admin menu items
+  const adminMenuItems = [
+    { text: 'إدارة المستخدمين', icon: <PeopleIcon />, path: '/admin' },
+    { text: 'رفع البيانات', icon: <CloudUpload />, path: '/admin/upload' }
+  ];
 
   const handleDrawerToggle = () => {
     setDrawerOpen(!drawerOpen);
@@ -81,7 +79,6 @@ function Header() {
     setAnchorEl(null);
   };
   
-
   const handleLogout = () => {
     // Clear localStorage
     sessionStorage.removeItem('token');
@@ -105,7 +102,7 @@ function Header() {
         </IconButton>
       </Box>
       <List>
-        {allMenuItems.map((item) => (
+        {menuItems.map((item) => (
           <ListItem 
             button 
             key={item.text} 
@@ -131,6 +128,43 @@ function Header() {
             />
           </ListItem>
         ))}
+        
+        {/* Show admin menu items only for admin users */}
+        {user && user.role === 'admin' && (
+          <>
+            <Divider sx={{ my: 1 }} />
+            <Typography variant="caption" color="text.secondary" sx={{ px: 3, py: 1, display: 'block' }}>
+              لوحة التحكم
+            </Typography>
+            
+            {adminMenuItems.map((item) => (
+              <ListItem 
+                button 
+                key={item.text} 
+                component={Link} 
+                to={item.path}
+                onClick={handleDrawerToggle}
+                sx={{ 
+                  borderRight: location.pathname === item.path ? `4px solid ${theme.palette.primary.main}` : 'none',
+                  backgroundColor: location.pathname === item.path ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                  }
+                }}
+              >
+                <ListItemIcon sx={{ color: location.pathname === item.path ? 'primary.main' : 'inherit' }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={item.text} 
+                  primaryTypographyProps={{ 
+                    fontWeight: location.pathname === item.path ? 'bold' : 'normal'
+                  }}
+                />
+              </ListItem>
+            ))}
+          </>
+        )}
         
         {/* Add logout option to mobile menu */}
         {user && (
@@ -179,6 +213,7 @@ function Header() {
             </IconButton>
           ) : (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {/* Main menu items */}
               {menuItems.map((item) => (
                 <Button 
                   key={item.text}
@@ -201,21 +236,41 @@ function Header() {
                 </Button>
               ))}
               
-              {/* Admin button - only shown to admin users */}
+              {/* Admin buttons - only shown to admin users */}
               {user && user.role === 'admin' && (
-                <Button 
-                  color="primary"
-                  variant="contained"
-                  component={Link} 
-                  to="/admin/users"
-                  startIcon={<PeopleIcon />}
-                  sx={{ 
-                    ml: 2,
-                    fontWeight: location.pathname === '/admin/users' ? 'bold' : 'normal',
-                  }}
-                >
-                  إدارة المستخدمين
-                </Button>
+                <>
+                  <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+                  
+                  <Button 
+                    color="primary"
+                    variant={location.pathname === '/admin' ? "contained" : "outlined"}
+                    component={Link} 
+                    to="/admin"
+                    startIcon={<PeopleIcon />}
+                    size="small"
+                    sx={{ 
+                      mx: 0.5,
+                      fontWeight: location.pathname === '/admin' ? 'bold' : 'normal',
+                    }}
+                  >
+                    إدارة المستخدمين
+                  </Button>
+                  
+                  <Button 
+                    color="primary"
+                    variant={location.pathname === '/admin/upload' ? "contained" : "outlined"}
+                    component={Link} 
+                    to="/admin/upload"
+                    startIcon={<CloudUpload />}
+                    size="small"
+                    sx={{ 
+                      mx: 0.5,
+                      fontWeight: location.pathname === '/admin/upload' ? 'bold' : 'normal',
+                    }}
+                  >
+                    رفع البيانات
+                  </Button>
+                </>
               )}
               
               {/* User profile icon and menu */}

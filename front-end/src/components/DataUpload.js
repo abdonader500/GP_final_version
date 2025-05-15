@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -19,7 +19,6 @@ import {
   StepLabel,
   Grid,
   alpha,
-  LinearProgress,
   useTheme,
   Table,
   TableBody,
@@ -27,7 +26,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip
+  Chip,
+  LinearProgress
 } from '@mui/material';
 import {
   CloudUpload,
@@ -38,7 +38,8 @@ import {
   Info,
   UploadFile,
   ShoppingCart,
-  Store
+  Store,
+  Autorenew
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -54,6 +55,7 @@ const DataUpload = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [collectionStats, setCollectionStats] = useState({ sales: 0, purchases: 0 });
   const [statusCheckInterval, setStatusCheckInterval] = useState(null);
+  const [processingComplete, setProcessingComplete] = useState(false);
 
   const steps = ['تحديد الملف', 'رفع البيانات', 'معالجة البيانات'];
 
@@ -106,6 +108,7 @@ const DataUpload = () => {
     setUploadResult(null);
     setProcessStatus(null);
     setError(null);
+    setProcessingComplete(false);
     
     if (selectedFile) {
       // Check file extension
@@ -171,6 +174,13 @@ const DataUpload = () => {
   const handleProcessData = async () => {
     setProcessing(true);
     setError(null);
+    setProcessingComplete(false);
+    setProcessStatus({
+      price_classification: { status: "pending", message: "في انتظار البدء..." },
+      profit_optimizer: { status: "pending", message: "في انتظار البدء..." },
+      aggregate_historical_demand: { status: "pending", message: "في انتظار البدء..." },
+      predict_demand_2025: { status: "pending", message: "في انتظار البدء..." }
+    });
 
     try {
       const response = await axios.post(
@@ -181,10 +191,11 @@ const DataUpload = () => {
 
       if (response.data && response.data.success) {
         // Start periodic status check
-        const interval = setInterval(checkProcessStatus, 3000);
+        const interval = setInterval(checkProcessStatus, 2000);
         setStatusCheckInterval(interval);
       } else {
         setError('حدث خطأ غير معروف أثناء بدء المعالجة');
+        setProcessing(false);
       }
     } catch (err) {
       console.error('Error starting data processing:', err);
@@ -199,7 +210,7 @@ const DataUpload = () => {
   };
 
   // Check process status
-  const checkProcessStatus = async () => {
+  const checkProcessStatus = useCallback(async () => {
     try {
       const response = await axios.get(
         'http://localhost:5000/api/upload/admin/process-status',
@@ -216,16 +227,22 @@ const DataUpload = () => {
         
         if (allComplete) {
           // Stop checking
-          clearInterval(statusCheckInterval);
-          setStatusCheckInterval(null);
+          if (statusCheckInterval) {
+            clearInterval(statusCheckInterval);
+            setStatusCheckInterval(null);
+          }
           setProcessing(false);
+          setProcessingComplete(true);
+          
+          // Refresh collection stats after processing
+          fetchCollectionStats();
         }
       }
     } catch (err) {
       console.error('Error checking process status:', err);
       // Continue checking even if there's an error
     }
-  };
+  }, [statusCheckInterval]);
 
   // Reset state and start over
   const handleReset = () => {
@@ -237,6 +254,7 @@ const DataUpload = () => {
     setProcessStatus(null);
     setError(null);
     setActiveStep(0);
+    setProcessingComplete(false);
     
     // Clear interval if it exists
     if (statusCheckInterval) {
@@ -274,6 +292,34 @@ const DataUpload = () => {
       default:
         return theme.palette.text.secondary;
     }
+  };
+
+  // Get overall processing progress percentage
+  const getOverallProgress = () => {
+    if (!processStatus) return 0;
+    
+    const statusValues = {
+      'pending': 0,
+      'processing': 50,
+      'complete': 100,
+      'error': 100
+    };
+    
+    const processes = Object.values(processStatus);
+    const totalProgress = processes.reduce((acc, process) => acc + statusValues[process.status], 0);
+    return (totalProgress / (processes.length * 100)) * 100;
+  };
+
+  // Get process display name
+  const getProcessDisplayName = (processKey) => {
+    const processNames = {
+      'price_classification': 'تصنيف الأسعار',
+      'profit_optimizer': 'تحسين الربح',
+      'aggregate_historical_demand': 'تجميع بيانات الطلب التاريخية',
+      'predict_demand_2025': 'توقع الطلب لعام 2025'
+    };
+    
+    return processNames[processKey] || processKey;
   };
 
   return (
@@ -448,7 +494,7 @@ const DataUpload = () => {
                     color="primary"
                     onClick={handleUpload}
                     disabled={uploading}
-                    startIcon={uploading ? <CircularProgress size={20} /> : <CloudUpload />}
+                    startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <CloudUpload />}
                   >
                     {uploading ? 'جاري الرفع...' : 'رفع البيانات'}
                   </Button>
@@ -472,51 +518,89 @@ const DataUpload = () => {
                   الخطوة التالية هي معالجة البيانات لتحديث النماذج وتصنيف البيانات. هذه العملية قد تستغرق بضع دقائق.
                 </Typography>
                 
+                {/* Overall progress indicator */}
+                {processStatus && (
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="body2" gutterBottom sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>التقدم الكلي للمعالجة</span>
+                      <span>{Math.round(getOverallProgress())}%</span>
+                    </Typography>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={getOverallProgress()} 
+                      color={processingComplete ? "success" : "primary"}
+                      sx={{ 
+                        height: 10, 
+                        borderRadius: 5,
+                        mb: 3
+                      }}
+                    />
+                  </Box>
+                )}
+                
                 <Box sx={{ mb: 3 }}>
                   {processStatus ? (
-                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.05) }}>
-                            <TableCell>العملية</TableCell>
-                            <TableCell>الحالة</TableCell>
-                            <TableCell>الرسالة</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {Object.entries(processStatus).map(([process, status]) => {
-                            const processNames = {
-                              'price_classification': 'تصنيف الأسعار',
-                              'profit_optimizer': 'تحسين الربح',
-                              'aggregate_historical_demand': 'تجميع بيانات الطلب التاريخية',
-                              'predict_demand_2025': 'توقع الطلب لعام 2025'
-                            };
-                            
-                            const statusNames = {
-                              'pending': 'قيد الانتظار',
-                              'processing': 'جاري المعالجة',
-                              'complete': 'مكتمل',
-                              'error': 'خطأ'
-                            };
-                            
-                            return (
-                              <TableRow key={process}>
-                                <TableCell>{processNames[process] || process}</TableCell>
-                                <TableCell>
-                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    {getProcessStatusIcon(status.status)}
-                                    <Typography variant="body2" sx={{ ml: 1, color: getProcessStatusColor(status.status) }}>
-                                      {statusNames[status.status] || status.status}
-                                    </Typography>
-                                  </Box>
-                                </TableCell>
-                                <TableCell>{status.message}</TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
+                    <Card variant="outlined" sx={{ mb: 3, borderRadius: 2 }}>
+                      <CardContent sx={{ p: 2 }}>
+                        <Typography variant="subtitle1" gutterBottom fontWeight="medium">
+                          حالة العمليات
+                        </Typography>
+                        
+                        {/* Process steps with status indicators */}
+                        {Object.entries(processStatus).map(([process, status], index) => (
+                          <Box key={process} sx={{ mb: index < Object.keys(processStatus).length - 1 ? 2 : 0 }}>
+                            <Box sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center',
+                              p: 1,
+                              borderRadius: 1,
+                              bgcolor: alpha(getProcessStatusColor(status.status), 0.1)
+                            }}>
+                              <Box sx={{ mr: 2, display: 'flex' }}>
+                                {getProcessStatusIcon(status.status)}
+                              </Box>
+                              
+                              <Box sx={{ flexGrow: 1 }}>
+                                <Typography variant="body2" fontWeight="medium">
+                                  {getProcessDisplayName(process)}
+                                </Typography>
+                                
+                                <Typography variant="caption" color="text.secondary">
+                                  {status.message || 'جاري التحميل...'}
+                                </Typography>
+                                
+                                {status.status === 'processing' && (
+                                  <LinearProgress 
+                                    sx={{ 
+                                      mt: 1, 
+                                      height: 4, 
+                                      borderRadius: 2,
+                                    }}
+                                  />
+                                )}
+                              </Box>
+                              
+                              <Box>
+                                <Chip 
+                                  size="small"
+                                  label={
+                                    status.status === 'pending' ? 'في الانتظار' :
+                                    status.status === 'processing' ? 'جاري المعالجة' :
+                                    status.status === 'complete' ? 'مكتمل' : 'خطأ'
+                                  }
+                                  color={
+                                    status.status === 'complete' ? 'success' :
+                                    status.status === 'error' ? 'error' :
+                                    status.status === 'processing' ? 'primary' : 'default'
+                                  }
+                                  variant={status.status === 'pending' ? 'outlined' : 'filled'}
+                                />
+                              </Box>
+                            </Box>
+                          </Box>
+                        ))}
+                      </CardContent>
+                    </Card>
                   ) : (
                     <Box sx={{ textAlign: 'center', py: 2 }}>
                       <Button
@@ -524,13 +608,28 @@ const DataUpload = () => {
                         color="primary"
                         onClick={handleProcessData}
                         disabled={processing}
-                        startIcon={processing ? <CircularProgress size={20} /> : <PlayArrow />}
+                        startIcon={processing ? <CircularProgress size={20} color="inherit" /> : <PlayArrow />}
+                        sx={{ py: 1.5, px: 4 }}
                       >
                         {processing ? 'جاري المعالجة...' : 'بدء معالجة البيانات'}
                       </Button>
                     </Box>
                   )}
                 </Box>
+                
+                {processingComplete && (
+                  <Alert 
+                    severity="success" 
+                    sx={{ mb: 3 }}
+                  >
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      اكتملت معالجة البيانات بنجاح!
+                    </Typography>
+                    <Typography variant="body2">
+                      تم تحديث النماذج والتصنيفات وتوقعات الطلب. يمكنك الآن تصفح الموقع واستخدام البيانات المحدثة.
+                    </Typography>
+                  </Alert>
+                )}
                 
                 <Divider sx={{ my: 2 }} />
                 
@@ -564,7 +663,7 @@ const DataUpload = () => {
                   <Typography variant="subtitle1">بيانات المبيعات</Typography>
                 </Box>
                 <Typography variant="h4" sx={{ ml: 4, color: theme.palette.primary.main }}>
-                  {collectionStats.sales} <Typography component="span" variant="body2" color="text.secondary">سجل</Typography>
+                  {collectionStats.sales.toLocaleString()} <Typography component="span" variant="body2" color="text.secondary">سجل</Typography>
                 </Typography>
               </Box>
               
@@ -574,7 +673,7 @@ const DataUpload = () => {
                   <Typography variant="subtitle1">بيانات المشتريات</Typography>
                 </Box>
                 <Typography variant="h4" sx={{ ml: 4, color: theme.palette.secondary.main }}>
-                  {collectionStats.purchases} <Typography component="span" variant="body2" color="text.secondary">سجل</Typography>
+                  {collectionStats.purchases.toLocaleString()} <Typography component="span" variant="body2" color="text.secondary">سجل</Typography>
                 </Typography>
               </Box>
               
@@ -588,7 +687,7 @@ const DataUpload = () => {
                 <Button
                   variant="outlined"
                   size="small"
-                  startIcon={<Refresh />}
+                  startIcon={<Autorenew />}
                   onClick={fetchCollectionStats}
                 >
                   تحديث الإحصائيات

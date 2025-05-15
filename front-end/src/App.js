@@ -5,11 +5,12 @@ import Header from './components/Header';
 import Home from './pages/Home';
 import Pricing from './pages/Pricing';
 import Visualizations from './pages/Visualizations';
-import SalesStrategy from './pages/SalesStrategy'; // Import the new component
+import SalesStrategy from './pages/SalesStrategy';
 import Login from './pages/Login';
 import UserDashboard from './pages/UserDashboard.js';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserManagement from './pages/Admin/UserManagement.js';
+import DataUpload from './components/DataUpload'; // Import the DataUpload component
 
 function App() {
   const [authChecked, setAuthChecked] = useState(false);
@@ -82,6 +83,16 @@ function App() {
               } 
             />
             
+            {/* Data Upload Route */}
+            <Route 
+              path="/admin/upload" 
+              element={
+                <ProtectedRoute role="admin">
+                  <DataUpload />
+                </ProtectedRoute>
+              } 
+            />
+            
             <Route 
               path="/pricing" 
               element={
@@ -100,7 +111,7 @@ function App() {
               }
             />
             
-            {/* New Sales Strategy Route */}
+            {/* Sales Strategy Route */}
             <Route 
               path="/sales-strategy" 
               element={

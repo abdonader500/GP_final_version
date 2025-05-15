@@ -1,0 +1,14 @@
+2025-04-27 21:22:08,751 [WARNING]  * Debugger is active!
+2025-04-27 21:22:08,754 [INFO]  * Debugger PIN: 614-696-288
+2025-04-27 21:22:08,768 [INFO] 127.0.0.1 - - [27/Apr/2025 21:22:08] "OPTIONS /api/auth/login HTTP/1.1" 200 -
+2025-04-27 21:22:08,777 [INFO] 127.0.0.1 - - [27/Apr/2025 21:22:08] "[31m[1mPOST /api/auth/login HTTP/1.1[0m" 401 -
+2025-04-27 21:22:11,000 [INFO] 127.0.0.1 - - [27/Apr/2025 21:22:11] "[31m[1mPOST /api/auth/login HTTP/1.1[0m" 401 -
+2025-04-27 21:22:14,747 [INFO] 127.0.0.1 - - [27/Apr/2025 21:22:14] "OPTIONS /api/auth/login HTTP/1.1" 200 -
+2025-04-27 21:22:15,068 [INFO] 127.0.0.1 - - [27/Apr/2025 21:22:15] "[31m[1mPOST /api/auth/login HTTP/1.1[0m" 401 -
+2025-04-27 21:22:24,078 [INFO] 127.0.0.1 - - [27/Apr/2025 21:22:24] "OPTIONS /api/auth/login HTTP/1.1" 200 -
+2025-04-27 21:22:24,396 [INFO] 127.0.0.1 - - [27/Apr/2025 21:22:24] "[31m[1mPOST /api/auth/login HTTP/1.1[0m" 401 -
+2025-04-27 21:22:27,758 [INFO] 127.0.0.1 - - [27/Apr/2025 21:22:27] "[31m[1mPOST /api/auth/login HTTP/1.1[0m" 401 -
+2025-04-27 21:22:29,177 [INFO] 127.0.0.1 - - [27/Apr/2025 21:22:29] "[31m[1mPOST /api/auth/login HTTP/1.1[0m" 401 -
+2025-04-27 21:22:40,854 [INFO] 127.0.0.1 - - [27/Apr/2025 21:22:40] "OPTIONS /api/auth/login HTTP/1.1" 200 -
+2025-04-27 21:22:41,395 [INFO] 127.0.0.1 - - [27/Apr/2025 21:22:41] "POST /api/auth/login HTTP/1.1" 200 -
+2025-04-27 21:26:22,457 [INFO]  * Detected change in 'C:\\Users\\Abdo Nader\\Desktop\\GP\\consult your data\\backend\\app\\models\\profit_optimizer.py', reloading

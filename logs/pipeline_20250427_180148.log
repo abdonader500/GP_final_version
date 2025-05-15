@@ -1,0 +1,24 @@
+2025-04-27 18:01:48,498 [INFO] Starting data processing pipeline
+2025-04-27 18:01:48,499 [INFO] Starting module: price_classification
+2025-04-27 18:01:48,499 [ERROR] Error in module price_classification: No module named 'app'
+2025-04-27 18:01:48,499 [ERROR] Exception details:
+Traceback (most recent call last):
+  File "c:\Users\Abdo Nader\Desktop\GP\consult your data\backend\app\utils\process_data_pipeline.py", line 53, in run_module
+    module = importlib.import_module(module_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Abdo Nader\AppData\Local\Programs\Python\Python311\Lib\importlib\__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1126, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1126, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1140, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'app'
+2025-04-27 18:01:48,532 [ERROR] Pipeline stopped at price_classification due to errors

@@ -1,12 +1,10 @@
 import pandas as pd
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split, cross_val_score, KFold, GroupKFold
-from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+from sklearn.model_selection import train_test_split
 from app.models.database import fetch_data, get_collection, init_db
 import arabic_reshaper
 from bidi.algorithm import get_display
@@ -90,7 +88,7 @@ def train_profit_models():
         sales_df["الكمية"] = pd.to_numeric(sales_df["الكمية"], errors="coerce")
         sales_df.dropna(subset=["سعر الجملة", "نسبة الربح", "الكمية", "التاريخ"], inplace=True)
 
-        # **Extract Year and Adjust for Inflation**
+        # Extract Year and Adjust for Inflation
         sales_df["Year"] = sales_df["التاريخ"].str.split("/").str[-1].astype(int)  # Assuming "DD/MM/YYYY" format
         sales_df["adjusted_price"] = sales_df.apply(
             lambda row: adjust_for_inflation(row["سعر الجملة"], row["Year"]), axis=1
@@ -130,127 +128,18 @@ def train_profit_models():
         print(f"🔎 Unique specifications: {len(spec_encoder.classes_)}")
         print(f"🔎 Unique price levels: {len(price_level_encoder.classes_)}")
 
-        # **Feature Engineering with Adjusted Price**
+        # Feature Engineering with Adjusted Price
         X = sales_df[["category_encoded", "spec_encoded", "price_level_encoded", "adjusted_price"]]
         y = sales_df["نسبة الربح"]
 
-        # ======= ENHANCED TESTING SECTION =======
-        
-        # 1. Data Quality Check
-        print("\n===== DATA QUALITY CHECK =====")
-        print(f"Dataset shape: {sales_df.shape}")
-        print(f"Missing values in features: {X.isnull().sum().sum()}")
-        print(f"Missing values in target: {y.isnull().sum()}")
-        print(f"Target value range: Min={y.min()}, Max={y.max()}, Mean={y.mean():.2f}, Median={y.median():.2f}")
-        
-        # 2. Check for duplicates
-        duplicate_count = sales_df.duplicated().sum()
-        print(f"Number of duplicate rows: {duplicate_count} ({duplicate_count/len(sales_df)*100:.2f}%)")
-        
-        # 3. Print sample distribution by category
-        category_counts = sales_df["القسم"].value_counts()
-        print("\nSample distribution by category:")
-        for category, count in category_counts.items():
-            print(f"  {category}: {count} samples ({count/len(sales_df)*100:.2f}%)")
-        
-        # 4. Examine Standard Train/Test Split
-        print("\n===== STANDARD TRAIN/TEST SPLIT =====")
+        # Simple train/test split for the model
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         
-        # 5. Check for Data Leakage - Categorical Distribution
-        print("\nChecking feature distribution in train/test sets:")
-        for col in ["category_encoded", "spec_encoded", "price_level_encoded"]:
-            train_unique = set(X_train[col].unique())
-            test_unique = set(X_test[col].unique())
-            test_only = test_unique - train_unique
-            print(f"  {col}: {len(test_only)} values appear only in test set")
-        
-        # 6. Various Cross-Validation Methods
-        print("\n===== CROSS-VALIDATION TESTS =====")
-        
-        # 6.1. Standard KFold CV
-        print("\nStandard KFold Cross-Validation:")
-        model_standard = RandomForestRegressor(n_estimators=100, random_state=42)
-        kfold = KFold(n_splits=5, shuffle=True, random_state=42)
-        cv_scores_standard = cross_val_score(model_standard, X, y, cv=kfold, scoring='r2')
-        print(f"  R² scores: {cv_scores_standard}")
-        print(f"  Mean R²: {cv_scores_standard.mean():.4f}, Std: {cv_scores_standard.std():.4f}")
-        
-        # 6.2. Group KFold CV by category
-        print("\nGroupKFold Cross-Validation (grouped by category):")
-        model_group = RandomForestRegressor(n_estimators=100, random_state=42)
-        group_kfold = GroupKFold(n_splits=5)
-        cv_scores_group = []
-        
-        for train_idx, test_idx in group_kfold.split(X, y, groups=sales_df["category_encoded"]):
-            X_train_group, X_test_group = X.iloc[train_idx], X.iloc[test_idx]
-            y_train_group, y_test_group = y.iloc[train_idx], y.iloc[test_idx]
-            
-            model_group.fit(X_train_group, y_train_group)
-            score = r2_score(y_test_group, model_group.predict(X_test_group))
-            cv_scores_group.append(score)
-            
-        print(f"  R² scores: {cv_scores_group}")
-        print(f"  Mean R²: {np.mean(cv_scores_group):.4f}, Std: {np.std(cv_scores_group):.4f}")
-        
-        # 7. Train Model for Final Evaluation
-        print("\n===== FINAL MODEL EVALUATION =====")
-        start_time = time.time()
+        # Train the model - directly using a simpler approach
+        print("🔧 Training RandomForest model for profit prediction...")
         model = RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
         model.fit(X_train, y_train)
-        end_time = time.time()
-        print(f"Model trained in {end_time - start_time:.4f} seconds")
-        
-        # 8. Evaluate Model on Training Data
-        y_train_pred = model.predict(X_train)
-        train_r2 = r2_score(y_train, y_train_pred)
-        train_mae = mean_absolute_error(y_train, y_train_pred)
-        train_mse = mean_squared_error(y_train, y_train_pred)
-        print(f"Training R² score: {train_r2:.4f}")
-        print(f"Training MAE: {train_mae:.4f}")
-        print(f"Training MSE: {train_mse:.4f}")
-
-        # 9. Evaluate Model on Testing Data
-        y_test_pred = model.predict(X_test)
-        test_r2 = r2_score(y_test, y_test_pred)
-        test_mae = mean_absolute_error(y_test, y_test_pred)
-        test_mse = mean_squared_error(y_test, y_test_pred)
-        print(f"Testing R² score: {test_r2:.4f}")
-        print(f"Testing MAE: {test_mae:.4f}")
-        print(f"Testing MSE: {test_mse:.4f}")
-
-        # 10. Check for Overfitting
-        r2_diff = train_r2 - test_r2
-        print(f"R² Difference (Train - Test): {r2_diff:.4f}")
-        if r2_diff > 0.1:
-            print("⚠ Warning: Potential overfitting detected! Training R² is significantly higher than Testing R².")
-        else:
-            print("✅ No significant overfitting detected.")
-        
-        # 11. Detailed Prediction Analysis - Error Distribution by Category
-        print("\n===== ERROR ANALYSIS BY CATEGORY =====")
-        test_results = pd.DataFrame({
-            'category': sales_df.iloc[X_test.index]["القسم"],
-            'actual': y_test,
-            'predicted': y_test_pred,
-            'error': y_test_pred - y_test
-        })
-        
-        category_errors = test_results.groupby('category')['error'].agg(['mean', 'std', 'count'])
-        print(category_errors)
-        
-        # 12. Plot Actual vs Predicted
-        plt.figure(figsize=(8, 6))
-        plt.scatter(y_test, y_test_pred, alpha=0.5)
-        plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
-        plt.xlabel('Actual Profit %')
-        plt.ylabel('Predicted Profit %')
-        plt.title('Actual vs Predicted Profit Percentage')
-        plt.grid(True)
-        plt.savefig('actual_vs_predicted.png')
-        plt.close()
-        
-        # ======= END OF ENHANCED TESTING SECTION =======
+        print("✅ Model training complete")
 
         # Predict Optimal Profit
         category_predictions = {}
@@ -304,8 +193,7 @@ def train_profit_models():
         models_collection.insert_many(valid_mongo_data)
         print(f"✅ {len(valid_mongo_data)} Profit models stored successfully in MongoDB.")
 
-        # Generate Charts
-        plot_model_accuracy(train_r2, test_r2)
+        # Generate Charts - Simple versions
         plot_feature_importance(model, ["القسم", "المواصفات", "مستوى السعر", "سعر الجملة"])
 
         return valid_mongo_data
@@ -313,18 +201,6 @@ def train_profit_models():
     except Exception as e:
         print(f"❌ Error in train_profit_models: {e}")
         return {}
-
-def plot_model_accuracy(train_r2, test_r2):
-    """Plot the R² scores for both training and testing sets to compare model performance."""
-    plt.figure(figsize=(6, 4))
-    plt.bar(["Training R²", "Testing R²"], [train_r2 * 100, test_r2 * 100], color=['blue', 'orange'])
-    plt.ylabel(get_display(arabic_reshaper.reshape("الدقة (%)")), fontproperties=arabic_font, fontsize=12)
-    plt.title(get_display(arabic_reshaper.reshape("دقة النموذج (R² Score)")), fontproperties=arabic_font, fontsize=14)
-    plt.ylim(0, 100)
-    for i, score in enumerate([train_r2 * 100, test_r2 * 100]):
-        plt.text(i, score + 2, f"{score:.2f}%", ha='center', fontproperties=arabic_font, fontsize=10)
-    plt.savefig("model_accuracy_comparison.png")
-    plt.close()
 
 def plot_feature_importance(model, feature_names):
     """

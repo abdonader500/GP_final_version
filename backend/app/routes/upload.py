@@ -11,16 +11,13 @@ import time
 import json
 from app.models.database import init_db, insert_data, fetch_data, get_collection
 from app.routes.auth import token_required, admin_required
+import threading
+from app.utils.process_data_pipeline import run_pipeline, get_pipeline_status
 
 upload_bp = Blueprint('upload', __name__)
 
 # Initialize process status
-process_status = {
-    "price_classification": {"status": "pending", "message": ""},
-    "profit_optimizer": {"status": "pending", "message": ""},
-    "aggregate_historical_demand": {"status": "pending", "message": ""},
-    "predict_demand_2025": {"status": "pending", "message": ""}
-}
+process_status = get_pipeline_status()
 
 # Required columns for validation
 REQUIRED_COLUMNS = [
@@ -241,15 +238,6 @@ def upload_data():
 def process_data():
     """Start the data processing pipeline."""
     try:
-        # Reset process status
-        global process_status
-        process_status = {
-            "price_classification": {"status": "pending", "message": ""},
-            "profit_optimizer": {"status": "pending", "message": ""},
-            "aggregate_historical_demand": {"status": "pending", "message": ""},
-            "predict_demand_2025": {"status": "pending", "message": ""}
-        }
-        
         # Check if a file was uploaded
         if not current_app.config.get('LAST_UPLOADED_FILE'):
             return jsonify({
@@ -257,8 +245,8 @@ def process_data():
                 "message": "لم يتم رفع أي ملف بعد"
             }), 400
         
-        # Start processing in a separate thread
-        processing_thread = threading.Thread(target=process_data_pipeline)
+        # Start the pipeline in a separate thread
+        processing_thread = threading.Thread(target=run_pipeline)
         processing_thread.daemon = True
         processing_thread.start()
         
@@ -281,7 +269,7 @@ def get_process_status():
     """Get the current status of the data processing pipeline."""
     return jsonify({
         "success": True,
-        "processes": process_status
+        "processes": get_pipeline_status()
     }), 200
 
 @upload_bp.route('/admin/collection-stats', methods=['GET'])

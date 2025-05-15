@@ -20,7 +20,8 @@ import {
   Avatar,
   Divider,
   ListItemButton,
-  Badge
+  Badge,
+  Tooltip
 } from '@mui/material';
 import { 
   Menu as MenuIcon, 
@@ -63,7 +64,7 @@ function Header() {
 
   // Admin menu items
   const adminMenuItems = [
-    { text: 'إدارة المستخدمين', icon: <PeopleIcon />, path: '/admin' },
+    { text: 'إدارة المستخدمين', icon: <PeopleIcon />, path: '/admin/users' },
     { text: 'رفع البيانات', icon: <CloudUpload />, path: '/admin/upload' }
   ];
 
@@ -89,6 +90,11 @@ function Header() {
     
     // Force reload of the page to reset all states
     window.location.href = '/login';
+  };
+
+  // Handler for upload data button click
+  const handleUploadDataClick = () => {
+    navigate('/admin/upload');
   };
   
   const drawer = (
@@ -243,14 +249,14 @@ function Header() {
                   
                   <Button 
                     color="primary"
-                    variant={location.pathname === '/admin' ? "contained" : "outlined"}
+                    variant={location.pathname === '/admin/users' ? "contained" : "outlined"}
                     component={Link} 
-                    to="/admin"
+                    to="/admin/users"
                     startIcon={<PeopleIcon />}
                     size="small"
                     sx={{ 
                       mx: 0.5,
-                      fontWeight: location.pathname === '/admin' ? 'bold' : 'normal',
+                      fontWeight: location.pathname === '/admin/users' ? 'bold' : 'normal',
                     }}
                   >
                     إدارة المستخدمين

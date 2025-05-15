@@ -1,0 +1,14 @@
+2025-04-27 19:00:04,569 [INFO] Starting data processing pipeline
+2025-04-27 19:00:04,569 [INFO] Starting module: price_classification
+2025-04-27 19:00:04,570 [INFO] Loading module from file: C:\Users\Abdo Nader\Desktop\GP\consult your data\backend\app\models\price_classification.py
+2025-04-27 19:00:21,500 [INFO] Module price_classification completed successfully in 16.93 seconds
+2025-04-27 19:00:23,501 [INFO] Starting module: profit_optimizer
+2025-04-27 19:00:23,502 [INFO] Loading module from file: C:\Users\Abdo Nader\Desktop\GP\consult your data\backend\app\models\profit_optimizer.py
+2025-04-27 19:08:06,338 [INFO] Module profit_optimizer completed successfully in 462.84 seconds
+2025-04-27 19:08:08,339 [INFO] Starting module: aggregate_historical_demand
+2025-04-27 19:08:08,339 [INFO] Loading module from file: C:\Users\Abdo Nader\Desktop\GP\consult your data\backend\app\models\aggregate_historical_demand.py
+2025-04-27 19:08:10,775 [INFO] Module aggregate_historical_demand completed successfully in 2.44 seconds
+2025-04-27 19:08:12,777 [INFO] Starting module: predict_demand_2025
+2025-04-27 19:08:12,777 [INFO] Loading module from file: C:\Users\Abdo Nader\Desktop\GP\consult your data\backend\app\models\predict_demand_2025.py
+2025-04-27 19:08:12,901 [INFO] Module predict_demand_2025 completed successfully in 0.12 seconds
+2025-04-27 19:08:14,903 [INFO] Pipeline completed successfully

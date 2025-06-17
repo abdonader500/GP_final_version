@@ -1,0 +1,14 @@
+2025-06-17 11:55:02,670 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.2:5000
+2025-06-17 11:55:02,671 [INFO] [33mPress CTRL+C to quit[0m
+2025-06-17 11:55:02,694 [INFO]  * Restarting with watchdog (windowsapi)
+2025-06-17 13:03:04,916 [INFO]  * Restarting with watchdog (windowsapi)
+2025-06-17 13:06:51,752 [INFO]  * Restarting with watchdog (windowsapi)
+2025-06-17 13:08:05,127 [INFO]  * Restarting with watchdog (windowsapi)
+2025-06-17 14:30:29,801 [INFO]  * Restarting with watchdog (windowsapi)
+2025-06-17 14:31:07,271 [INFO]  * Restarting with watchdog (windowsapi)
+2025-06-17 14:31:37,300 [INFO]  * Restarting with watchdog (windowsapi)
+2025-06-17 14:33:29,302 [INFO]  * Restarting with watchdog (windowsapi)
+2025-06-17 14:34:00,039 [INFO]  * Restarting with watchdog (windowsapi)

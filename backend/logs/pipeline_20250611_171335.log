@@ -1,0 +1,38 @@
+2025-06-11 17:13:35,690 [WARNING]  * Debugger is active!
+2025-06-11 17:13:35,693 [INFO]  * Debugger PIN: 614-696-288
+2025-06-11 17:13:54,927 [INFO] 127.0.0.1 - - [11/Jun/2025 17:13:54] "OPTIONS /api/auth/login HTTP/1.1" 200 -
+2025-06-11 17:13:55,451 [INFO] 127.0.0.1 - - [11/Jun/2025 17:13:55] "POST /api/auth/login HTTP/1.1" 200 -
+2025-06-11 18:11:14,263 [INFO] 127.0.0.1 - - [11/Jun/2025 18:11:14] "GET /api/visualization/demand-forecasting HTTP/1.1" 200 -
+2025-06-11 18:14:12,101 [INFO] 127.0.0.1 - - [11/Jun/2025 18:14:12] "OPTIONS /api/upload/admin/collection-stats HTTP/1.1" 200 -
+2025-06-11 18:14:19,363 [INFO] 127.0.0.1 - - [11/Jun/2025 18:14:19] "GET /api/upload/admin/collection-stats HTTP/1.1" 200 -
+2025-06-11 18:16:33,904 [INFO] 127.0.0.1 - - [11/Jun/2025 18:16:33] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-11 18:16:35,014 [INFO] 127.0.0.1 - - [11/Jun/2025 18:16:35] "GET /api/visualization/demand-forecasting HTTP/1.1" 200 -
+2025-06-11 18:16:41,304 [INFO] 127.0.0.1 - - [11/Jun/2025 18:16:41] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-11 18:16:43,060 [INFO] 127.0.0.1 - - [11/Jun/2025 18:16:43] "GET /api/visualization/demand-forecasting HTTP/1.1" 200 -
+2025-06-11 18:16:54,985 [INFO] 127.0.0.1 - - [11/Jun/2025 18:16:54] "GET /api/visualization/seasonal-analysis HTTP/1.1" 200 -
+2025-06-11 18:16:57,958 [INFO] 127.0.0.1 - - [11/Jun/2025 18:16:57] "GET /api/visualization/category-performance?group_by=monthly&metric=money HTTP/1.1" 200 -
+2025-06-11 18:18:04,915 [INFO] 127.0.0.1 - - [11/Jun/2025 18:18:04] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-11 18:18:10,711 [INFO] 127.0.0.1 - - [11/Jun/2025 18:18:10] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:18:11,158 [INFO] 127.0.0.1 - - [11/Jun/2025 18:18:11] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:18:31,990 [INFO] 127.0.0.1 - - [11/Jun/2025 18:18:31] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:18:32,395 [INFO] 127.0.0.1 - - [11/Jun/2025 18:18:32] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:19:42,628 [INFO] 127.0.0.1 - - [11/Jun/2025 18:19:42] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:19:42,970 [INFO] 127.0.0.1 - - [11/Jun/2025 18:19:42] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:19:49,412 [INFO] 127.0.0.1 - - [11/Jun/2025 18:19:49] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:19:49,791 [INFO] 127.0.0.1 - - [11/Jun/2025 18:19:49] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:20:00,489 [INFO] 127.0.0.1 - - [11/Jun/2025 18:20:00] "GET /api/visualization/demand-forecasting HTTP/1.1" 200 -
+2025-06-11 18:21:25,490 [INFO] 127.0.0.1 - - [11/Jun/2025 18:21:25] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-11 18:21:29,754 [INFO] 127.0.0.1 - - [11/Jun/2025 18:21:29] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:21:30,170 [INFO] 127.0.0.1 - - [11/Jun/2025 18:21:30] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:21:50,722 [INFO] 127.0.0.1 - - [11/Jun/2025 18:21:50] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:21:51,101 [INFO] 127.0.0.1 - - [11/Jun/2025 18:21:51] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:22:21,513 [INFO] 127.0.0.1 - - [11/Jun/2025 18:22:21] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:22:21,887 [INFO] 127.0.0.1 - - [11/Jun/2025 18:22:21] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:22:31,401 [INFO] 127.0.0.1 - - [11/Jun/2025 18:22:31] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:22:31,783 [INFO] 127.0.0.1 - - [11/Jun/2025 18:22:31] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-11 18:32:00,632 [INFO] 127.0.0.1 - - [11/Jun/2025 18:32:00] "OPTIONS /api/admin/users HTTP/1.1" 200 -
+2025-06-11 18:32:00,924 [INFO] 127.0.0.1 - - [11/Jun/2025 18:32:00] "GET /api/admin/users HTTP/1.1" 200 -
+2025-06-11 18:32:31,698 [INFO] 127.0.0.1 - - [11/Jun/2025 18:32:31] "OPTIONS /api/admin/users HTTP/1.1" 200 -
+2025-06-11 18:32:32,275 [INFO] 127.0.0.1 - - [11/Jun/2025 18:32:32] "[35m[1mPOST /api/admin/users HTTP/1.1[0m" 201 -
+2025-06-11 18:32:32,286 [INFO] 127.0.0.1 - - [11/Jun/2025 18:32:32] "GET /api/admin/users HTTP/1.1" 200 -
+2025-06-11 19:49:00,857 [INFO]  * Detected change in 'C:\\Users\\Abdo Nader\\Desktop\\GP\\consult your data\\backend\\app\\routes\\upload.py', reloading

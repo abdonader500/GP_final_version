@@ -1,0 +1,14 @@
+2025-06-13 19:07:39,391 [WARNING]  * Debugger is active!
+2025-06-13 19:07:39,396 [INFO]  * Debugger PIN: 614-696-288
+2025-06-13 19:08:06,546 [INFO] 127.0.0.1 - - [13/Jun/2025 19:08:06] "OPTIONS /api/auth/login HTTP/1.1" 200 -
+2025-06-13 19:08:07,224 [INFO] 127.0.0.1 - - [13/Jun/2025 19:08:07] "POST /api/auth/login HTTP/1.1" 200 -
+2025-06-13 19:09:17,551 [INFO] 127.0.0.1 - - [13/Jun/2025 19:09:17] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-13 19:09:19,220 [INFO] 127.0.0.1 - - [13/Jun/2025 19:09:19] "GET /api/visualization/demand-forecasting HTTP/1.1" 200 -
+2025-06-13 19:09:22,357 [INFO] 127.0.0.1 - - [13/Jun/2025 19:09:22] "[33mGET /api/visualization/categories HTTP/1.1[0m" 404 -
+2025-06-13 19:10:25,145 [INFO] 127.0.0.1 - - [13/Jun/2025 19:10:25] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-13 19:10:27,435 [INFO] 127.0.0.1 - - [13/Jun/2025 19:10:27] "GET /api/visualization/demand-forecasting HTTP/1.1" 200 -
+2025-06-13 19:10:29,178 [INFO] 127.0.0.1 - - [13/Jun/2025 19:10:29] "GET /api/visualization/category-performance?group_by=monthly&metric=money HTTP/1.1" 200 -
+2025-06-13 19:10:30,128 [INFO] 127.0.0.1 - - [13/Jun/2025 19:10:30] "GET /api/visualization/seasonal-analysis HTTP/1.1" 200 -
+2025-06-13 19:11:07,602 [INFO] 127.0.0.1 - - [13/Jun/2025 19:11:07] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-13 19:11:12,628 [INFO] 127.0.0.1 - - [13/Jun/2025 19:11:12] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-13 19:11:13,138 [INFO] 127.0.0.1 - - [13/Jun/2025 19:11:13] "POST /api/sales-strategy/generate HTTP/1.1" 200 -

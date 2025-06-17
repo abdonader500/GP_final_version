@@ -17,20 +17,15 @@ client = None
 db = None
 
 def init_db():
-    """
-    Initialize the MongoDB connection.
-    
-    :return: None
-    """
     global client, db
     try:
         if client is None:
             print(f"Attempting to connect to MongoDB with URI: {MONGO_URI}")
             client = MongoClient(MONGO_URI)
             db = client['consult_your_data']
-            print("✅ MongoDB connection initialized successfully")
+            print("MongoDB connection initialized successfully")
     except Exception as e:
-        print(f"❌ Error initializing MongoDB connection: {str(e)}")
+        print(f"Error initializing MongoDB connection: {str(e)}")
         raise
 
 def get_collection(collection_name):
@@ -45,7 +40,7 @@ def get_collection(collection_name):
             init_db()
         return db[collection_name]
     except Exception as e:
-        print(f"❌ Error getting collection {collection_name}: {str(e)}")
+        print(f"Error getting collection {collection_name}: {str(e)}")
         raise
 
 def fetch_data(collection_name, query=None, projection=None):
@@ -66,7 +61,7 @@ def fetch_data(collection_name, query=None, projection=None):
         data = list(collection.find(query, projection))
         return data
     except Exception as e:
-        print(f"❌ Error fetching data from {collection_name}: {str(e)}")
+        print(f"Error fetching data from {collection_name}: {str(e)}")
         return []
 
 def insert_data(collection_name, data):
@@ -90,7 +85,7 @@ def insert_data(collection_name, data):
         print(f"Inserted {len(result.inserted_ids)} documents into {collection_name}")
         return len(result.inserted_ids)
     except Exception as e:
-        print(f"❌ Error inserting data into {collection_name}: {str(e)}")
+        print(f"Error inserting data into {collection_name}: {str(e)}")
         return 0
 
 def close_connection():
@@ -103,4 +98,4 @@ def close_connection():
     if client is not None:
         client.close()
         client = None
-        print("✅ MongoDB connection closed")
+        print("MongoDB connection closed")

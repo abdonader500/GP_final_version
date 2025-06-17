@@ -46,7 +46,7 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(price_analysis_bp, url_prefix='/api/price-analysis')
     app.register_blueprint(sales_strategy_bp, url_prefix='/api/sales-strategy') 
-    app.register_blueprint(upload_bp, url_prefix='/api/upload')  # Fixed the variable name and added url_prefix
+    app.register_blueprint(upload_bp, url_prefix='/api/upload')  
 
 
 

@@ -9,8 +9,6 @@ from bson import ObjectId
 from functools import wraps
 
 
-
-# Create blueprint
 auth_bp = Blueprint('auth', __name__)
 
 # MongoDB connection
@@ -23,8 +21,6 @@ JWT_SECRET = os.environ.get('JWT_SECRET', 'your_jwt_secret')
 JWT_EXPIRATION = 24  # hours
 
 # Authentication decorator
-# Add these debug prints in your decorators in auth.py
-
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):

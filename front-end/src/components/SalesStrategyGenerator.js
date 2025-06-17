@@ -2040,7 +2040,7 @@ const generatePdfReport = async () => {
                                       sx={{
                                         display: "flex",
                                         alignItems: "center",
-                                        justifyContent: "center", // Add center justification
+                                        justifyContent: "center", 
                                       }}
                                     >
                                       {parseFloat(strategyData.performanceTrends.avgPrice[year]) >= 0 ? (

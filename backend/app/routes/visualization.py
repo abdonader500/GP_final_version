@@ -40,7 +40,7 @@ def get_demand_forecasting():
         return Response(json_response, content_type="application/json; charset=utf-8")
 
     except Exception as e:
-        print(f"❌ Error fetching predicted demand data: {str(e)}")
+        print(f" Error fetching predicted demand data: {str(e)}")
         return jsonify({"error": f"Failed to fetch predicted demand data: {str(e)}"}), 500
 
 @visualization_bp.route('/demand-forecasting-items', methods=['GET'])
@@ -82,7 +82,7 @@ def get_demand_forecasting_items():
         return Response(json_response, content_type="application/json; charset=utf-8")
 
     except Exception as e:
-        print(f"❌ Error fetching predicted item demand data: {str(e)}")
+        print(f" Error fetching predicted item demand data: {str(e)}")
         return jsonify({"error": f"Failed to fetch predicted item demand data: {str(e)}"}), 500
 
 @visualization_bp.route('/sales-rate', methods=['GET'])
@@ -136,7 +136,7 @@ def get_sales_rate():
         return Response(json_response, content_type="application/json; charset=utf-8")
 
     except Exception as e:
-        print(f"❌ Error fetching sales rate data: {str(e)}")
+        print(f" Error fetching sales rate data: {str(e)}")
         return jsonify({"error": f"Failed to fetch sales rate data: {str(e)}"}), 500
 
 @visualization_bp.route('/monthly-demand', methods=['GET'])
@@ -202,7 +202,7 @@ def get_monthly_demand():
         return Response(json_response, content_type="application/json; charset=utf-8")
 
     except Exception as e:
-        print(f"❌ Error fetching monthly demand data: {str(e)}")
+        print(f" Error fetching monthly demand data: {str(e)}")
         return jsonify({"error": f"Failed to fetch monthly demand data: {str(e)}"}), 500
 
 @visualization_bp.route('/seasonal-analysis', methods=['GET'])
@@ -245,7 +245,7 @@ def get_seasonal_analysis():
         return Response(json_response, content_type="application/json; charset=utf-8")
 
     except Exception as e:
-        print(f"❌ Error fetching seasonal analysis data: {str(e)}")
+        print(f" Error fetching seasonal analysis data: {str(e)}")
         return jsonify({"error": f"Failed to fetch seasonal analysis data: {str(e)}"}), 500
 
 # Add this endpoint to your visualization.py file
@@ -398,7 +398,7 @@ def get_category_performance():
         return jsonify({
             "status": "success",
             "performance_data": processed_data,
-            "market_share": sales_distribution,  # Keep the field name as market_share for backwards compatibility
+            "market_share": sales_distribution, 
             "growth_rates": growth_rates
         })
         
@@ -409,7 +409,6 @@ def get_category_performance():
             "message": str(e)
         }), 500
 
-# Add this endpoint to your visualization.py file
 
 @visualization_bp.route('/item-demand-forecasting', methods=['GET'])
 def get_item_demand_forecasting():
@@ -466,7 +465,7 @@ def get_item_demand_forecasting():
         return Response(json_response, content_type="application/json; charset=utf-8")
 
     except Exception as e:
-        print(f"❌ Error fetching predicted item demand data: {str(e)}")
+        print(f" Error fetching predicted item demand data: {str(e)}")
         return jsonify({"error": f"Failed to fetch predicted item demand data: {str(e)}"}), 500
 
 
@@ -545,5 +544,5 @@ def get_daily_item_demand_forecasting():
         return Response(json_response, content_type="application/json; charset=utf-8")
 
     except Exception as e:
-        print(f"❌ Error fetching predicted daily item demand data: {str(e)}")
+        print(f" Error fetching predicted daily item demand data: {str(e)}")
         return jsonify({"error": f"Failed to fetch predicted daily item demand data: {str(e)}"}), 500

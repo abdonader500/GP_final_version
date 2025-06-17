@@ -22,9 +22,8 @@ def get_arabic_font():
     return None
 
 arabic_font = get_arabic_font()
-
 # **Inflation Adjustment Setup**
-# Define inflation rates based on provided data for Egypt (General Inflation % from year to year)
+# Define inflation rates based on data for Egypt (General Inflation % from year to year)
 INFLATION_RATES = {
     2021: 0.138,  # 13.8% from 2021 to 2022
     2022: 0.325,  # 32.5% from 2022 to 2023
@@ -78,7 +77,7 @@ def train_profit_models():
         })
 
         if not classified_sales:
-            print("❌ No classified sales data found! Training aborted.")
+            print(" No classified sales data found! Training aborted.")
             return {}
 
         # Create DataFrame and clean data
@@ -101,10 +100,10 @@ def train_profit_models():
         undefined_percentage = (undefined_count / total_count) * 100
         print(f"🔍 Proportion of 'غير محدد' specifications: {undefined_percentage:.2f}% ({undefined_count}/{total_count} records)")
 
-        print(f"📊 Total training samples available: {sales_df.shape[0]}")
+        print(f"Total training samples available: {sales_df.shape[0]}")
 
         if sales_df.empty:
-            print("❌ No valid numeric classified sales data found! Training aborted.")
+            print(" No valid numeric classified sales data found! Training aborted.")
             return {}
 
         # Compute Sales Rate
@@ -124,9 +123,9 @@ def train_profit_models():
         sales_df["spec_encoded"] = spec_encoder.fit_transform(sales_df["product_specification"])
         sales_df["price_level_encoded"] = price_level_encoder.fit_transform(sales_df["price_level"])
 
-        print(f"🔎 Unique categories: {len(category_encoder.classes_)}")
-        print(f"🔎 Unique specifications: {len(spec_encoder.classes_)}")
-        print(f"🔎 Unique price levels: {len(price_level_encoder.classes_)}")
+        print(f"Unique categories: {len(category_encoder.classes_)}")
+        print(f"Unique specifications: {len(spec_encoder.classes_)}")
+        print(f"Unique price levels: {len(price_level_encoder.classes_)}")
 
         # Feature Engineering with Adjusted Price
         X = sales_df[["category_encoded", "spec_encoded", "price_level_encoded", "adjusted_price"]]
@@ -135,11 +134,10 @@ def train_profit_models():
         # Simple train/test split for the model
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         
-        # Train the model - directly using a simpler approach
-        print("🔧 Training RandomForest model for profit prediction...")
+        print("Training RandomForest model for profit prediction...")
         model = RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
         model.fit(X_train, y_train)
-        print("✅ Model training complete")
+        print(" Model training complete")
 
         # Predict Optimal Profit
         category_predictions = {}
@@ -191,7 +189,7 @@ def train_profit_models():
             if all(value is not None for value in [levels["low"], levels["moderate"], levels["high"]])
         ]
         models_collection.insert_many(valid_mongo_data)
-        print(f"✅ {len(valid_mongo_data)} Profit models stored successfully in MongoDB.")
+        print(f" {len(valid_mongo_data)} Profit models stored successfully in MongoDB.")
 
         # Generate Charts - Simple versions
         plot_feature_importance(model, ["القسم", "المواصفات", "مستوى السعر", "سعر الجملة"])
@@ -199,7 +197,7 @@ def train_profit_models():
         return valid_mongo_data
 
     except Exception as e:
-        print(f"❌ Error in train_profit_models: {e}")
+        print(f"Error in train_profit_models: {e}")
         return {}
 
 def plot_feature_importance(model, feature_names):

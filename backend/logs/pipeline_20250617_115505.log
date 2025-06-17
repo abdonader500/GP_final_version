@@ -1,0 +1,13 @@
+2025-06-17 11:55:05,107 [WARNING]  * Debugger is active!
+2025-06-17 11:55:05,111 [INFO]  * Debugger PIN: 614-696-288
+2025-06-17 11:55:35,820 [INFO] 127.0.0.1 - - [17/Jun/2025 11:55:35] "OPTIONS /api/auth/login HTTP/1.1" 200 -
+2025-06-17 11:55:36,401 [INFO] 127.0.0.1 - - [17/Jun/2025 11:55:36] "POST /api/auth/login HTTP/1.1" 200 -
+2025-06-17 11:55:42,727 [INFO] 127.0.0.1 - - [17/Jun/2025 11:55:42] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-17 11:55:47,281 [INFO] 127.0.0.1 - - [17/Jun/2025 11:55:47] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 11:55:47,715 [INFO] 127.0.0.1 - - [17/Jun/2025 11:55:47] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 11:56:31,641 [INFO] 127.0.0.1 - - [17/Jun/2025 11:56:31] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 11:56:31,974 [INFO] 127.0.0.1 - - [17/Jun/2025 11:56:31] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 12:00:49,430 [INFO] 127.0.0.1 - - [17/Jun/2025 12:00:49] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-17 12:01:00,458 [INFO] 127.0.0.1 - - [17/Jun/2025 12:01:00] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-17 12:01:06,449 [INFO] 127.0.0.1 - - [17/Jun/2025 12:01:06] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-17 13:03:03,231 [INFO]  * Detected change in 'C:\\Users\\Abdo Nader\\Desktop\\GP\\consult your data\\backend\\app\\routes\\price_analysis.py', reloading

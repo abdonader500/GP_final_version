@@ -96,7 +96,7 @@ def classify_price_levels():
                 "high": max_price
             })
 
-            print(f"✅ {category} ({spec}, {year}): Low < {q1:.2f}, Moderate < {q2:.2f}, High <= {max_price:.2f} [Count: {record_count}]")
+            print(f" {category} ({spec}, {year}): Low < {q1:.2f}, Moderate < {q2:.2f}, High <= {max_price:.2f} [Count: {record_count}]")
 
     # Store price ranges in MongoDB
     price_ranges_collection = get_collection("price_ranges")
@@ -118,7 +118,7 @@ def classify_price_levels():
 
     if price_ranges_records:  # Only insert if there are records
         price_ranges_collection.insert_many(price_ranges_records)
-        print(f"✅ Price ranges stored in MongoDB with specifications ({len(price_ranges_records)} records).")
+        print(f"Price ranges stored in MongoDB with specifications ({len(price_ranges_records)} records).")
     else:
         print("⚠ No price range records to store in MongoDB.")
 
@@ -196,16 +196,16 @@ def classify_sales():
         # Include all relevant fields in the classified data, including الصافي
         classified_sales_data.extend(category_data[['القسم', 'سعر الجملة', 'التاريخ', 'اسم الصنف', 'product_specification', 'price_level', 'نسبة الربح', 'الكمية', 'الصافي']].to_dict(orient="records"))
 
-        print(f"✅ Classified sales data for {category} ({spec}, {year}) [Count: {record_count}]")
+        print(f"Classified sales data for {category} ({spec}, {year}) [Count: {record_count}]")
 
     # Store classified sales data in MongoDB
     sales_classified_collection = get_collection("classified_sales")
     sales_classified_collection.delete_many({})
     if classified_sales_data:  # Only insert if there are records
         sales_classified_collection.insert_many(classified_sales_data)
-        print(f"✅ Sales-based price classification completed & stored in MongoDB with specifications ({len(classified_sales_data)} records).")
+        print(f"Sales-based price classification completed & stored in MongoDB with specifications ({len(classified_sales_data)} records).")
     else:
-        print("⚠ No classified sales data to store in MongoDB.")
+        print("No classified sales data to store in MongoDB.")
 
 if __name__ == "__main__":
     classify_price_levels()

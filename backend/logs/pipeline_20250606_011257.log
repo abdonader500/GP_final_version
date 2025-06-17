@@ -1,0 +1,26 @@
+2025-06-06 01:12:57,465 [WARNING]  * Debugger is active!
+2025-06-06 01:12:57,470 [INFO]  * Debugger PIN: 614-696-288
+2025-06-06 01:13:28,052 [INFO] 127.0.0.1 - - [06/Jun/2025 01:13:28] "OPTIONS /api/auth/login HTTP/1.1" 200 -
+2025-06-06 01:13:28,648 [INFO] 127.0.0.1 - - [06/Jun/2025 01:13:28] "POST /api/auth/login HTTP/1.1" 200 -
+2025-06-06 01:13:34,598 [INFO] 127.0.0.1 - - [06/Jun/2025 01:13:34] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-06 01:13:35,672 [INFO] 127.0.0.1 - - [06/Jun/2025 01:13:35] "GET /api/visualization/demand-forecasting HTTP/1.1" 200 -
+2025-06-06 01:13:41,196 [INFO] 127.0.0.1 - - [06/Jun/2025 01:13:41] "GET /api/visualization/category-performance?group_by=monthly&metric=money HTTP/1.1" 200 -
+2025-06-06 01:13:53,782 [INFO] 127.0.0.1 - - [06/Jun/2025 01:13:53] "GET /api/visualization/category-performance?group_by=yearly&start_year=2022&end_year=2025&metric=money HTTP/1.1" 200 -
+2025-06-06 01:14:04,867 [INFO] 127.0.0.1 - - [06/Jun/2025 01:14:04] "GET /api/visualization/seasonal-analysis HTTP/1.1" 200 -
+2025-06-06 01:14:43,540 [INFO] 127.0.0.1 - - [06/Jun/2025 01:14:43] "GET /api/visualization/category-performance?group_by=monthly&metric=money HTTP/1.1" 200 -
+2025-06-06 01:15:22,786 [INFO] 127.0.0.1 - - [06/Jun/2025 01:15:22] "GET /api/visualization/category-performance?group_by=monthly&start_year=2021&end_year=2024&metric=money HTTP/1.1" 200 -
+2025-06-06 01:15:28,819 [INFO] 127.0.0.1 - - [06/Jun/2025 01:15:28] "GET /api/visualization/category-performance?group_by=monthly&start_year=2023&end_year=2024&metric=money HTTP/1.1" 200 -
+2025-06-06 01:15:39,793 [INFO] 127.0.0.1 - - [06/Jun/2025 01:15:39] "GET /api/visualization/category-performance?group_by=yearly&start_year=2023&end_year=2024&metric=money HTTP/1.1" 200 -
+2025-06-06 01:15:44,443 [INFO] 127.0.0.1 - - [06/Jun/2025 01:15:44] "GET /api/visualization/category-performance?group_by=quarterly&start_year=2023&end_year=2024&metric=money HTTP/1.1" 200 -
+2025-06-06 01:37:16,671 [INFO] 127.0.0.1 - - [06/Jun/2025 01:37:16] "GET /api/visualization/category-performance?group_by=monthly&start_year=2023&end_year=2024&metric=money HTTP/1.1" 200 -
+2025-06-06 01:37:29,624 [INFO] 127.0.0.1 - - [06/Jun/2025 01:37:29] "GET /api/visualization/category-performance?group_by=monthly&start_year=2023&end_year=2024&metric=quantity HTTP/1.1" 200 -
+2025-06-06 01:37:31,693 [INFO] 127.0.0.1 - - [06/Jun/2025 01:37:31] "GET /api/visualization/category-performance?group_by=monthly&start_year=2023&end_year=2024&metric=quantity HTTP/1.1" 200 -
+2025-06-06 01:37:51,357 [INFO] 127.0.0.1 - - [06/Jun/2025 01:37:51] "GET /api/visualization/category-performance?group_by=monthly&start_year=2023&end_year=2024&metric=money HTTP/1.1" 200 -
+2025-06-06 01:38:35,825 [INFO] 127.0.0.1 - - [06/Jun/2025 01:38:35] "GET /api/visualization/category-performance?group_by=monthly&start_year=2023&end_year=2024&metric=quantity HTTP/1.1" 200 -
+2025-06-06 01:38:41,778 [INFO] 127.0.0.1 - - [06/Jun/2025 01:38:41] "GET /api/visualization/category-performance?group_by=monthly&start_year=2023&end_year=2024&metric=money HTTP/1.1" 200 -
+2025-06-06 01:38:53,307 [INFO] 127.0.0.1 - - [06/Jun/2025 01:38:53] "GET /api/visualization/category-performance?group_by=monthly&start_year=2022&end_year=2024&metric=money HTTP/1.1" 200 -
+2025-06-06 01:39:18,941 [INFO] 127.0.0.1 - - [06/Jun/2025 01:39:18] "GET /api/visualization/category-performance?group_by=monthly&start_year=2022&end_year=2024&metric=quantity HTTP/1.1" 200 -
+2025-06-06 01:39:28,913 [INFO] 127.0.0.1 - - [06/Jun/2025 01:39:28] "[33mGET /api/visualization/categories HTTP/1.1[0m" 404 -
+2025-06-06 01:39:35,141 [INFO] 127.0.0.1 - - [06/Jun/2025 01:39:35] "GET /api/sales-strategy/categories HTTP/1.1" 200 -
+2025-06-06 01:39:44,458 [INFO] 127.0.0.1 - - [06/Jun/2025 01:39:44] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-06 01:39:44,834 [INFO] 127.0.0.1 - - [06/Jun/2025 01:39:44] "POST /api/sales-strategy/generate HTTP/1.1" 200 -

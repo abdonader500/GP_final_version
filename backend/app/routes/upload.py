@@ -64,7 +64,7 @@ def append_to_collection(collection_name, new_records):
         
         return len(result.inserted_ids)
     except Exception as e:
-        print(f"❌ Error appending data to {collection_name}: {str(e)}")
+        print(f"Error appending data to {collection_name}: {str(e)}")
         raise
 
 def run_python_script_as_module(script_name, module_path):
@@ -90,20 +90,20 @@ def run_python_script_as_module(script_name, module_path):
             # Script executed successfully
             process_status[script_name]["status"] = "complete"
             process_status[script_name]["message"] = "تمت المعالجة بنجاح"
-            print(f"✅ Script {script_name} completed successfully")
+            print(f" Script {script_name} completed successfully")
             print(f"Output: {stdout}")
             return True
         else:
             # Script execution failed
             process_status[script_name]["status"] = "error"
             process_status[script_name]["message"] = f"حدث خطأ: {stderr}"
-            print(f"❌ Error running script {script_name}: {stderr}")
+            print(f" Error running script {script_name}: {stderr}")
             return False
     except Exception as e:
         # Exception occurred
         process_status[script_name]["status"] = "error"
         process_status[script_name]["message"] = f"حدث خطأ: {str(e)}"
-        print(f"❌ Exception running script {script_name}: {str(e)}")
+        print(f" Exception running script {script_name}: {str(e)}")
         return False
 
 def process_data_pipeline():
@@ -208,9 +208,9 @@ def upload_data():
             # Append to collection instead of replacing
             inserted_count = append_to_collection(collection_name, records)
             
-            print(f"✅ Data appended to {collection_name} collection: {inserted_count} new records added to {existing_count} existing records")
+            print(f" Data appended to {collection_name} collection: {inserted_count} new records added to {existing_count} existing records")
         except Exception as e:
-            print(f"❌ Error saving data to database: {str(e)}")
+            print(f" Error saving data to database: {str(e)}")
             return jsonify({
                 "success": False,
                 "message": f"حدث خطأ أثناء حفظ البيانات: {str(e)}"

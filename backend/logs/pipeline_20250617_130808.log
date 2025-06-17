@@ -1,0 +1,40 @@
+2025-06-17 13:08:08,153 [WARNING]  * Debugger is active!
+2025-06-17 13:08:08,155 [INFO]  * Debugger PIN: 614-696-288
+2025-06-17 14:00:15,130 [INFO] 127.0.0.1 - - [17/Jun/2025 14:00:15] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:00:15,536 [INFO] 127.0.0.1 - - [17/Jun/2025 14:00:15] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:00:36,109 [INFO] 127.0.0.1 - - [17/Jun/2025 14:00:36] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:00:36,480 [INFO] 127.0.0.1 - - [17/Jun/2025 14:00:36] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:00:58,460 [INFO] 127.0.0.1 - - [17/Jun/2025 14:00:58] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:00:58,843 [INFO] 127.0.0.1 - - [17/Jun/2025 14:00:58] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:01:20,606 [INFO] 127.0.0.1 - - [17/Jun/2025 14:01:20] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:01:20,972 [INFO] 127.0.0.1 - - [17/Jun/2025 14:01:20] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:01:26,926 [INFO] 127.0.0.1 - - [17/Jun/2025 14:01:26] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:01:27,281 [INFO] 127.0.0.1 - - [17/Jun/2025 14:01:27] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:01:41,617 [INFO] 127.0.0.1 - - [17/Jun/2025 14:01:41] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:01:41,981 [INFO] 127.0.0.1 - - [17/Jun/2025 14:01:41] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:01:57,043 [INFO] 127.0.0.1 - - [17/Jun/2025 14:01:57] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:01:57,402 [INFO] 127.0.0.1 - - [17/Jun/2025 14:01:57] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:02:03,236 [INFO] 127.0.0.1 - - [17/Jun/2025 14:02:03] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:02:03,649 [INFO] 127.0.0.1 - - [17/Jun/2025 14:02:03] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:02:14,346 [INFO] 127.0.0.1 - - [17/Jun/2025 14:02:14] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:02:14,712 [INFO] 127.0.0.1 - - [17/Jun/2025 14:02:14] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:02:30,366 [INFO] 127.0.0.1 - - [17/Jun/2025 14:02:30] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:02:30,830 [INFO] 127.0.0.1 - - [17/Jun/2025 14:02:30] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:02:50,653 [INFO] 127.0.0.1 - - [17/Jun/2025 14:02:50] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:02:51,009 [INFO] 127.0.0.1 - - [17/Jun/2025 14:02:51] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:03:25,286 [INFO] 127.0.0.1 - - [17/Jun/2025 14:03:25] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:03:25,731 [INFO] 127.0.0.1 - - [17/Jun/2025 14:03:25] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:03:31,886 [INFO] 127.0.0.1 - - [17/Jun/2025 14:03:31] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:03:32,366 [INFO] 127.0.0.1 - - [17/Jun/2025 14:03:32] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:03:38,107 [INFO] 127.0.0.1 - - [17/Jun/2025 14:03:38] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:03:38,536 [INFO] 127.0.0.1 - - [17/Jun/2025 14:03:38] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:03:49,894 [INFO] 127.0.0.1 - - [17/Jun/2025 14:03:49] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:03:50,304 [INFO] 127.0.0.1 - - [17/Jun/2025 14:03:50] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:03:58,373 [INFO] 127.0.0.1 - - [17/Jun/2025 14:03:58] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:03:58,814 [INFO] 127.0.0.1 - - [17/Jun/2025 14:03:58] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:04:05,918 [INFO] 127.0.0.1 - - [17/Jun/2025 14:04:05] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:04:06,343 [INFO] 127.0.0.1 - - [17/Jun/2025 14:04:06] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:05:07,171 [INFO] 127.0.0.1 - - [17/Jun/2025 14:05:07] "OPTIONS /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:05:07,615 [INFO] 127.0.0.1 - - [17/Jun/2025 14:05:07] "POST /api/sales-strategy/generate HTTP/1.1" 200 -
+2025-06-17 14:30:28,380 [INFO]  * Detected change in 'C:\\Users\\Abdo Nader\\Desktop\\GP\\consult your data\\backend\\app\\routes\\sales_strategy.py', reloading
+2025-06-17 14:30:28,382 [INFO]  * Detected change in 'C:\\Users\\Abdo Nader\\Desktop\\GP\\consult your data\\backend\\app\\routes\\sales_strategy.py', reloading

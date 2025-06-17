@@ -48,15 +48,15 @@ def aggregate_historical_demand():
         item_records = item_demand.to_dict(orient="records")
 
         # Store in MongoDB
-        print("💾 Storing category monthly demand...")
+        print("Storing category monthly demand...")
         insert_data("category_monthly_demand", category_records)
-        print("💾 Storing item specification monthly demand (per category)...")
+        print("Storing item specification monthly demand (per category)...")
         insert_data("item_specification_monthly_demand", item_records)
 
-        print("✅ Historical demand aggregation complete")
+        print(" Historical demand aggregation complete")
 
     except Exception as e:
-        print(f"❌ Error aggregating historical demand: {str(e)}")
+        print(f"Error aggregating historical demand: {str(e)}")
 
 if __name__ == "__main__":
     aggregate_historical_demand()

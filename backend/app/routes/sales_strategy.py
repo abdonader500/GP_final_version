@@ -52,13 +52,13 @@ def generate_sales_strategy():
         if not category:
             return jsonify({"error": "Category is required"}), 400
             
-        print(f"📊 Generating sales strategy for category: {category}")
-        print(f"🔍 Inflation factor: {inflation_factor}%")
+        print(f"Generating sales strategy for category: {category}")
+        print(f"Inflation factor: {inflation_factor}%")
         if analysis_notes:
-            print(f"📝 Analysis notes: {analysis_notes}")
+            print(f"Analysis notes: {analysis_notes}")
         
         # Fetch item specification monthly demand data
-        print("📦 Fetching item specification monthly demand data...")
+        print("Fetching item specification monthly demand data...")
         
         query = {
             "القسم": category
@@ -80,7 +80,7 @@ def generate_sales_strategy():
         return jsonify(strategy_data), 200
         
     except Exception as e:
-        print(f"❌ Error generating sales strategy: {str(e)}")
+        print(f" Error generating sales strategy: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def process_sales_data(df, category, inflation_factor=30, analysis_notes=None):
@@ -836,7 +836,7 @@ def get_categories():
         return jsonify(categories), 200
         
     except Exception as e:
-        print(f"❌ Error getting categories: {str(e)}")
+        print(f" Error getting categories: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @sales_strategy_bp.route('/products-by-category/<category>', methods=['GET'])
@@ -855,7 +855,7 @@ def get_products_by_category(category):
         return jsonify(products), 200
         
     except Exception as e:
-        print(f"❌ Error getting products for category {category}: {str(e)}")
+        print(f" Error getting products for category {category}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @sales_strategy_bp.route('/compare-years/<category>', methods=['GET'])
@@ -931,7 +931,7 @@ def compare_years(category):
         }), 200
         
     except Exception as e:
-        print(f"❌ Error comparing years for category {category}: {str(e)}")
+        print(f" Error comparing years for category {category}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @sales_strategy_bp.route('/seasonal-events/<category>', methods=['GET'])
@@ -1093,7 +1093,7 @@ def get_seasonal_events(category):
         }), 200
         
     except Exception as e:
-        print(f"❌ Error getting seasonal events for category {category}: {str(e)}")
+        print(f" Error getting seasonal events for category {category}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @sales_strategy_bp.route('/monthly-trends/<category>', methods=['GET'])
@@ -1198,7 +1198,7 @@ def get_monthly_trends(category):
         }
         
     except Exception as e:
-        print(f"❌ Error getting monthly trends for category {category}: {str(e)}")
+        print(f" Error getting monthly trends for category {category}: {str(e)}")
         raise
 
 @sales_strategy_bp.route('/seasonal-recommendations/<category>', methods=['GET'])
@@ -1250,7 +1250,7 @@ def get_seasonal_recommendations(category):
         return jsonify(recommendations), 200
         
     except Exception as e:
-        print(f"❌ Error generating seasonal recommendations for {category}: {str(e)}")
+        print(f" Error generating seasonal recommendations for {category}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def generate_marketing_strategies(category, seasonal_data, monthly_data, yearly_data):
@@ -1629,7 +1629,7 @@ def analyze_performance(category):
         return jsonify(result), 200
         
     except Exception as e:
-        print(f"❌ Error analyzing performance for {category}: {str(e)}")
+        print(f" Error analyzing performance for {category}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def generate_performance_insights(category, analysis_data, inflation_factor):
@@ -2601,7 +2601,7 @@ def cross_year_comparison(category):
         }), 200
         
     except Exception as e:
-        print(f"❌ Error in cross-year comparison for {category}: {str(e)}")
+        print(f" Error in cross-year comparison for {category}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def generate_seasonal_event_strategies(category, monthly_data):
@@ -2903,7 +2903,7 @@ def monthly_performance_comparison(category):
         }), 200
         
     except Exception as e:
-        print(f"❌ Error in monthly performance comparison for {category}: {str(e)}")
+        print(f" Error in monthly performance comparison for {category}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def generate_monthly_marketing_strategies(top_months, bottom_months):
@@ -3253,7 +3253,7 @@ def seasonal_event_analysis(category):
         }), 200
         
     except Exception as e:
-        print(f"❌ Error in seasonal event analysis for {category}: {str(e)}")
+        print(f" Error in seasonal event analysis for {category}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def generate_event_specific_strategies(event_name, category, growth_trend, has_inflation_impact, importance, inflation_factor):
@@ -3721,7 +3721,7 @@ def analyze_inflation_impact(category):
         }), 200
         
     except Exception as e:
-        print(f"❌ Error in inflation impact analysis for {category}: {str(e)}")
+        print(f" Error in inflation impact analysis for {category}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def generate_inflation_mitigation_strategies(inflation_impact, monthly_impact, inflation_factor, category):
@@ -4091,7 +4091,7 @@ def comprehensive_strategy(category):
         return jsonify(comprehensive_response), 200
         
     except Exception as e:
-        print(f"❌ Error generating comprehensive strategy for {category}: {str(e)}")
+        print(f" Error generating comprehensive strategy for {category}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def run_monthly_comparison(df, category):
@@ -4666,7 +4666,7 @@ def sales_trends_dashboard(category):
         }), 200
         
     except Exception as e:
-        print(f"❌ Error generating sales trends dashboard for {category}: {str(e)}")
+        print(f" Error generating sales trends dashboard for {category}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def get_yearly_trends(df):
